@@ -60,14 +60,11 @@ export async function GET(request: NextRequest) {
 
 		// Generate cover art URLs (public access for browsing)
 		const songsWithUrls = await Promise.all(
-      songs.map(async (song) => {
-        console.log("Raw song", song)
-        const coverArtUrl = await S3Service.getSignedDownloadUrl(song.coverArtUrl, 3600); // 1 hour expiry
-        console.log("Album Cover URL:", coverArtUrl)
+			songs.map(async (song) => {
+				const coverArtUrl = await S3Service.getSignedDownloadUrl(song.coverArtUrl, 3600); // 1 hour expiry
 				return {
 					...song,
 					coverArtUrl,
-					// Don't include fileKey in public response
 					fileKey: undefined,
 				};
 			}),

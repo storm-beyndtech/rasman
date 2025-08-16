@@ -1,393 +1,513 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Filter, Grid, List, Album as AlbumIcon } from 'lucide-react';
-import AlbumCard from '@/components/AlbumCard';
-import { LoadingSpinner, ErrorMessage, Pagination, EmptyState } from '@/components/UtilityComponents';
-import { IAlbum } from '@/lib/models';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+	Search,
+	Filter,
+	Grid,
+	List,
+	Disc,
+	Star,
+	Calendar,
+	Music,
+	DollarSign,
+	Loader2,
+	X,
+} from "lucide-react";
+import { IAlbum } from "@/lib/models";
+import AlbumCard from "@/components/AlbumCard";
+import { useAudio } from "@/provider/AudioProvider";
 
 interface AlbumsPageState {
-  albums: IAlbum[];
-  loading: boolean;
-  error: string | null;
-  filters: {
-    search: string;
-    featured: boolean | null;
-    minPrice: number | null;
-    maxPrice: number | null;
-    sortBy: string;
-    sortOrder: string;
-  };
-  pagination: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-  viewMode: 'grid' | 'list';
+	albums: IAlbum[];
+	loading: boolean;
+	error: string | null;
+	filters: {
+		search: string;
+		featured: boolean | null;
+		minPrice: number | null;
+		maxPrice: number | null;
+		sortBy: string;
+		sortOrder: string;
+	};
+	pagination: {
+		page: number;
+		limit: number;
+		totalCount: number;
+		totalPages: number;
+		hasNext: boolean;
+		hasPrev: boolean;
+	};
+	viewMode: "grid" | "list";
+	showFilters: boolean;
 }
 
 const AlbumsPage: React.FC = () => {
-  const [state, setState] = useState<AlbumsPageState>({
-    albums: [],
-    loading: true,
-    error: null,
-    filters: {
-      search: '',
-      featured: null,
-      minPrice: null,
-      maxPrice: null,
-      sortBy: 'createdAt',
-      sortOrder: 'desc',
-    },
-    pagination: {
-      page: 1,
-      limit: 9,
-      totalCount: 0,
-      totalPages: 0,
-      hasNext: false,
-      hasPrev: false,
-    },
-    viewMode: 'grid',
-  });
+	const { hasPurchased } = useAudio();
+	const [state, setState] = useState<AlbumsPageState>({
+		albums: [],
+		loading: true,
+		error: null,
+		filters: {
+			search: "",
+			featured: null,
+			minPrice: null,
+			maxPrice: null,
+			sortBy: "releaseDate",
+			sortOrder: "desc",
+		},
+		pagination: {
+			page: 1,
+			limit: 12,
+			totalCount: 0,
+			totalPages: 0,
+			hasNext: false,
+			hasPrev: false,
+		},
+		viewMode: "grid",
+		showFilters: false,
+	});
 
-  const [showFilters, setShowFilters] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+	const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // Fetch albums
-  const fetchAlbums = async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+	// Fetch albums
+	const fetchAlbums = async () => {
+		setState((prev) => ({ ...prev, loading: true, error: null }));
 
-    try {
-      const params = new URLSearchParams();
-      
-      // Add filter parameters
-      Object.entries(state.filters).forEach(([key, value]) => {
-        if (value !== null && value !== '') {
-          params.append(key, value.toString());
-        }
-      });
-      
-      // Add pagination parameters
-      params.append('page', state.pagination.page.toString());
-      params.append('limit', state.pagination.limit.toString());
+		try {
+			const params = new URLSearchParams();
 
-      const response = await fetch(`/api/albums?${params}`);
-      const result = await response.json();
+			// Add filter parameters
+			Object.entries(state.filters).forEach(([key, value]) => {
+				if (value !== null && value !== "") {
+					params.append(key, value.toString());
+				}
+			});
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch albums');
-      }
+			// Add pagination parameters
+			params.append("page", state.pagination.page.toString());
+			params.append("limit", state.pagination.limit.toString());
 
-      setState(prev => ({
-        ...prev,
-        albums: result.data.albums,
-        pagination: result.data.pagination,
-        loading: false,
-      }));
+			const response = await fetch(`/api/albums?${params}`);
+			const result = await response.json();
 
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'An error occurred',
-        loading: false,
-      }));
-    }
-  };
+			if (!result.success) {
+				throw new Error(result.error || "Failed to fetch albums");
+			}
 
-  // Effect to fetch albums when filters or pagination change
-  useEffect(() => {
-    fetchAlbums();
-  }, [state.filters, state.pagination.page]);
+			setState((prev) => ({
+				...prev,
+				albums: result.data.albums,
+				pagination: result.data.pagination,
+				loading: false,
+			}));
+		} catch (error) {
+			setState((prev) => ({
+				...prev,
+				error: error instanceof Error ? error.message : "An error occurred",
+				loading: false,
+			}));
+		}
+	};
 
-  // Handle search input with debounce
-  const handleSearchChange = (value: string) => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
+	// Effect to fetch albums when filters or pagination change
+	useEffect(() => {
+		fetchAlbums();
+	}, [state.filters, state.pagination.page]);
 
-    const timeout = setTimeout(() => {
-      setState(prev => ({
-        ...prev,
-        filters: { ...prev.filters, search: value },
-        pagination: { ...prev.pagination, page: 1 },
-      }));
-    }, 500);
+	// Handle search input with debounce
+	const handleSearchChange = (value: string) => {
+		if (searchTimeout) {
+			clearTimeout(searchTimeout);
+		}
 
-    setSearchTimeout(timeout);
-  };
+		const timeout = setTimeout(() => {
+			setState((prev) => ({
+				...prev,
+				filters: { ...prev.filters, search: value },
+				pagination: { ...prev.pagination, page: 1 },
+			}));
+		}, 500);
 
-  // Handle filter changes
-  const handleFilterChange = (key: string, value: any) => {
-    setState(prev => ({
-      ...prev,
-      filters: { ...prev.filters, [key]: value },
-      pagination: { ...prev.pagination, page: 1 },
-    }));
-  };
+		setSearchTimeout(timeout);
+	};
 
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setState(prev => ({
-      ...prev,
-      pagination: { ...prev.pagination, page },
-    }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+	// Handle filter changes
+	const handleFilterChange = (key: string, value: any) => {
+		setState((prev) => ({
+			...prev,
+			filters: { ...prev.filters, [key]: value },
+			pagination: { ...prev.pagination, page: 1 },
+		}));
+	};
 
-  // Clear all filters
-  const clearFilters = () => {
-    setState(prev => ({
-      ...prev,
-      filters: {
-        search: '',
-        featured: null,
-        minPrice: null,
-        maxPrice: null,
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-      },
-      pagination: { ...prev.pagination, page: 1 },
-    }));
-  };
+	// Handle page change
+	const handlePageChange = (page: number) => {
+		setState((prev) => ({
+			...prev,
+			pagination: { ...prev.pagination, page },
+		}));
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	};
 
-  const fadeInVariants = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-  };
+	// Clear all filters
+	const clearFilters = () => {
+		setState((prev) => ({
+			...prev,
+			filters: {
+				search: "",
+				featured: null,
+				minPrice: null,
+				maxPrice: null,
+				sortBy: "releaseDate",
+				sortOrder: "desc",
+			},
+			pagination: { ...prev.pagination, page: 1 },
+		}));
+	};
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <motion.div
-          initial="initial"
-          animate="animate"
-          variants={fadeInVariants}
-          className="text-center mb-12"
-        >
-          <h1 className="text-4xl md:text-6xl font-bold font-serif text-reggae-dark mb-4">
-            Music Albums
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Explore complete musical journeys crafted with love, consciousness, and authentic reggae spirit
-          </p>
-        </motion.div>
+	const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
+	const formatDate = (date: Date | string) => {
+		const dateObj = typeof date === "string" ? new Date(date) : date;
+		return dateObj.toLocaleDateString("en-GB", {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+		});
+	};
 
-        {/* Search and Filters */}
-        <motion.div
-          initial="initial"
-          animate="animate"
-          variants={fadeInVariants}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl shadow-lg p-6 mb-8"
-        >
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-6">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search albums, artists..."
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-reggae-green focus:border-transparent outline-none"
-                onChange={(e) => handleSearchChange(e.target.value)}
-              />
-            </div>
+	const fadeInVariants = {
+		initial: { opacity: 0, y: 20 },
+		animate: { opacity: 1, y: 0 },
+	};
 
-            {/* Controls */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-reggae-green transition-colors"
-              >
-                <Filter size={20} />
-                Filters
-              </button>
+	return (
+		<div className="min-h-screen bg-black pt-20 pb-20 relative overflow-hidden">
+			{/* Background Elements */}
+			<div className="absolute inset-0 bg-gradient-to-br from-reggae-red/5 via-black to-reggae-yellow/5 pointer-events-none" />
+			<div className="absolute top-20 right-20 w-72 h-72 bg-reggae-red/10 rounded-full blur-3xl pointer-events-none" />
+			<div className="absolute bottom-20 left-20 w-96 h-96 bg-reggae-yellow/10 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="flex items-center gap-2 border rounded-lg p-1">
-                <button
-                  onClick={() => setState(prev => ({ ...prev, viewMode: 'grid' }))}
-                  className={`p-2 rounded ${state.viewMode === 'grid' ? 'bg-reggae-green text-white' : 'text-gray-400'}`}
-                >
-                  <Grid size={18} />
-                </button>
-                <button
-                  onClick={() => setState(prev => ({ ...prev, viewMode: 'list' }))}
-                  className={`p-2 rounded ${state.viewMode === 'list' ? 'bg-reggae-green text-white' : 'text-gray-400'}`}
-                >
-                  <List size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
+			<div className="container mx-auto px-4 py-8 relative z-10">
+				{/* Header */}
+				<motion.div
+					initial="initial"
+					animate="animate"
+					variants={fadeInVariants}
+					className="text-center mb-12"
+				>
+					<h1 className="text-5xl md:text-7xl font-bold font-serif text-white mb-4">
+						Reggae <span className="text-reggae-yellow">Albums</span>
+					</h1>
+					<p className="text-xl text-gray-300 max-w-3xl mx-auto">
+						Complete collections of conscious music that tell stories of love, unity, and spiritual awakening
+					</p>
+				</motion.div>
 
-          {/* Expandable Filters */}
-          {showFilters && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="border-t pt-6"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Featured Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Featured</label>
-                  <select
-                    value={state.filters.featured === null ? '' : state.filters.featured.toString()}
-                    onChange={(e) => handleFilterChange('featured', e.target.value === '' ? null : e.target.value === 'true')}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reggae-green focus:border-transparent"
-                  >
-                    <option value="">All Albums</option>
-                    <option value="true">Featured Only</option>
-                    <option value="false">Non-Featured</option>
-                  </select>
-                </div>
+				{/* Search and Controls */}
+				<motion.div
+					initial="initial"
+					animate="animate"
+					variants={fadeInVariants}
+					transition={{ delay: 0.2 }}
+					className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6 mb-8"
+				>
+					<div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-6">
+						{/* Search */}
+						<div className="relative flex-1 max-w-md">
+							<Search
+								className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+								size={20}
+							/>
+							<input
+								type="text"
+								placeholder="Search albums, artists..."
+								className="w-full pl-12 pr-4 py-3 bg-black/30 backdrop-blur-sm border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-yellow focus:border-reggae-yellow/50 outline-none text-white placeholder-gray-400 transition-all duration-300"
+								onChange={(e) => handleSearchChange(e.target.value)}
+							/>
+						</div>
 
-                {/* Price Range */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Price (₦)</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={state.filters.minPrice || ''}
-                    onChange={(e) => handleFilterChange('minPrice', e.target.value ? parseFloat(e.target.value) : null)}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reggae-green focus:border-transparent"
-                  />
-                </div>
+						{/* Controls */}
+						<div className="flex items-center gap-4">
+							<button
+								onClick={() => setState((prev) => ({ ...prev, showFilters: !prev.showFilters }))}
+								className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
+									state.showFilters
+										? "bg-reggae-yellow text-black"
+										: "bg-black/30 border border-gray-700/30 text-gray-300 hover:text-reggae-yellow hover:border-reggae-yellow/30"
+								}`}
+							>
+								<Filter size={20} />
+								Filters
+							</button>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Price (₦)</label>
-                  <input
-                    type="number"
-                    placeholder="10000"
-                    value={state.filters.maxPrice || ''}
-                    onChange={(e) => handleFilterChange('maxPrice', e.target.value ? parseFloat(e.target.value) : null)}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reggae-green focus:border-transparent"
-                  />
-                </div>
+							<div className="flex items-center gap-2 bg-black/30 border border-gray-700/30 rounded-xl p-1">
+								<button
+									onClick={() => setState((prev) => ({ ...prev, viewMode: "grid" }))}
+									className={`p-2 rounded-lg transition-all duration-300 ${
+										state.viewMode === "grid"
+											? "bg-reggae-yellow text-black"
+											: "text-gray-400 hover:text-reggae-yellow"
+									}`}
+								>
+									<Grid size={18} />
+								</button>
+								<button
+									onClick={() => setState((prev) => ({ ...prev, viewMode: "list" }))}
+									className={`p-2 rounded-lg transition-all duration-300 ${
+										state.viewMode === "list"
+											? "bg-reggae-yellow text-black"
+											: "text-gray-400 hover:text-reggae-yellow"
+									}`}
+								>
+									<List size={18} />
+								</button>
+							</div>
+						</div>
+					</div>
 
-                {/* Sort By */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-                  <select
-                    value={state.filters.sortBy}
-                    onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reggae-green focus:border-transparent"
-                  >
-                    <option value="createdAt">Latest</option>
-                    <option value="title">Title</option>
-                    <option value="price">Price</option>
-                    <option value="releaseDate">Release Date</option>
-                  </select>
-                </div>
-              </div>
+					{/* Expandable Filters */}
+					{state.showFilters && (
+						<motion.div
+							initial={{ height: 0, opacity: 0 }}
+							animate={{ height: "auto", opacity: 1 }}
+							exit={{ height: 0, opacity: 0 }}
+							className="border-t border-gray-700/30 pt-6"
+						>
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+								{/* Featured Filter */}
+								<div>
+									<label className="block text-sm font-medium text-gray-300 mb-2">Featured</label>
+									<select
+										value={state.filters.featured === null ? "" : state.filters.featured.toString()}
+										onChange={(e) =>
+											handleFilterChange("featured", e.target.value === "" ? null : e.target.value === "true")
+										}
+										className="w-full p-3 bg-black/30 border border-gray-700/30 rounded-lg focus:ring-2 focus:ring-reggae-yellow focus:border-reggae-yellow/50 outline-none text-white"
+									>
+										<option value="">All Albums</option>
+										<option value="true">Featured Only</option>
+										<option value="false">Non-Featured</option>
+									</select>
+								</div>
 
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={clearFilters}
-                  className="px-4 py-2 text-gray-600 hover:text-reggae-green transition-colors"
-                >
-                  Clear All Filters
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </motion.div>
+								{/* Sort By */}
+								<div>
+									<label className="block text-sm font-medium text-gray-300 mb-2">Sort By</label>
+									<select
+										value={state.filters.sortBy}
+										onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+										className="w-full p-3 bg-black/30 border border-gray-700/30 rounded-lg focus:ring-2 focus:ring-reggae-yellow focus:border-reggae-yellow/50 outline-none text-white"
+									>
+										<option value="releaseDate">Release Date</option>
+										<option value="title">Title</option>
+										<option value="price">Price</option>
+										<option value="createdAt">Date Added</option>
+									</select>
+								</div>
 
-        {/* Results */}
-        {state.loading ? (
-          <LoadingSpinner />
-        ) : state.error ? (
-          <ErrorMessage message={state.error} onRetry={fetchAlbums} />
-        ) : state.albums.length === 0 ? (
-          <EmptyState
-            icon={<AlbumIcon className="text-gray-400" size={64} />}
-            title="No Albums Found"
-            description="No albums match your current search and filter criteria."
-            actionLabel="Clear Filters"
-            onAction={clearFilters}
-          />
-        ) : (
-          <>
-            {/* Albums Grid/List */}
-            <motion.div
-              initial="initial"
-              animate="animate"
-              variants={fadeInVariants}
-              transition={{ delay: 0.4 }}
-              className={
-                state.viewMode === 'grid'
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8'
-                  : 'space-y-6'
-              }
-            >
-              {state.albums.map((album, index) => (
-                <motion.div
-                  key={album._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <AlbumCard 
-                    album={album}
-                    variant={state.viewMode === 'list' ? 'compact' : 'default'}
-                  />
-                </motion.div>
-              ))}
-            </motion.div>
+								{/* Sort Order */}
+								<div>
+									<label className="block text-sm font-medium text-gray-300 mb-2">Order</label>
+									<select
+										value={state.filters.sortOrder}
+										onChange={(e) => handleFilterChange("sortOrder", e.target.value)}
+										className="w-full p-3 bg-black/30 border border-gray-700/30 rounded-lg focus:ring-2 focus:ring-reggae-yellow focus:border-reggae-yellow/50 outline-none text-white"
+									>
+										<option value="desc">Descending</option>
+										<option value="asc">Ascending</option>
+									</select>
+								</div>
+							</div>
 
-            {/* Pagination */}
-            {state.pagination.totalPages > 1 && (
-              <motion.div
-                initial="initial"
-                animate="animate"
-                variants={fadeInVariants}
-                transition={{ delay: 0.6 }}
-                className="mt-12"
-              >
-                <Pagination
-                  currentPage={state.pagination.page}
-                  totalPages={state.pagination.totalPages}
-                  onPageChange={handlePageChange}
-                  hasNext={state.pagination.hasNext}
-                  hasPrev={state.pagination.hasPrev}
-                />
-              </motion.div>
-            )}
-          </>
-        )}
+							<div className="flex justify-between items-center">
+								<div className="text-sm text-gray-400">{state.pagination.totalCount} albums found</div>
+								<button
+									onClick={clearFilters}
+									className="flex items-center gap-2 px-4 py-2 text-gray-400 hover:text-reggae-yellow transition-colors duration-300"
+								>
+									<X size={16} />
+									Clear Filters
+								</button>
+							</div>
+						</motion.div>
+					)}
+				</motion.div>
 
-        {/* Call to Action */}
-        <motion.div
-          initial="initial"
-          animate="animate"
-          variants={fadeInVariants}
-          transition={{ delay: 0.8 }}
-          className="mt-20 text-center"
-        >
-          <div className="bg-gradient-to-r from-reggae-green to-reggae-yellow rounded-2xl p-8 text-white">
-            <h3 className="text-3xl font-bold mb-4">Can't Find What You're Looking For?</h3>
-            <p className="text-white/90 mb-6 max-w-2xl mx-auto">
-              Stay tuned for new album releases and exclusive content. 
-              Follow us for updates on upcoming musical journeys.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-reggae-dark px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors">
-                Subscribe to Updates
-              </button>
-              <button className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-reggae-dark transition-colors">
-                Browse Songs
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  );
+				{/* Results */}
+				{state.loading ? (
+					<div className="flex items-center justify-center py-20">
+						<div className="text-center">
+							<Loader2 className="w-12 h-12 text-reggae-yellow animate-spin mx-auto mb-4" />
+							<p className="text-gray-400">Loading album collections...</p>
+						</div>
+					</div>
+				) : state.error ? (
+					<div className="text-center py-12">
+						<div className="bg-black/20 backdrop-blur-2xl border border-red-500/30 rounded-2xl p-8 max-w-md mx-auto">
+							<div className="text-red-400 text-lg mb-4">{state.error}</div>
+							<button
+								onClick={fetchAlbums}
+								className="bg-reggae-yellow text-black px-6 py-3 rounded-xl hover:bg-yellow-400 transition-colors font-medium"
+							>
+								Try Again
+							</button>
+						</div>
+					</div>
+				) : state.albums.length === 0 ? (
+					<div className="text-center py-12">
+						<div className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-12 max-w-md mx-auto">
+							<Disc className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+							<h3 className="text-xl font-bold text-white mb-2">No albums found</h3>
+							<p className="text-gray-400 mb-6">
+								{state.filters.search || state.filters.featured !== null
+									? "Try adjusting your filters"
+									: "No albums have been released yet"}
+							</p>
+							<button
+								onClick={clearFilters}
+								className="bg-reggae-yellow text-black px-6 py-3 rounded-xl hover:bg-yellow-400 transition-colors font-medium"
+							>
+								Clear Filters
+							</button>
+						</div>
+					</div>
+				) : (
+					<>
+						{/* Albums Grid/List */}
+						<motion.div
+							initial="initial"
+							animate="animate"
+							variants={fadeInVariants}
+							transition={{ delay: 0.4 }}
+							className={
+								state.viewMode === "grid"
+									? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12"
+									: "space-y-4 mb-12"
+							}
+						>
+							{state.albums.map((album, index) => (
+								<motion.div
+									key={album._id}
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: index * 0.05 }}
+									className={state.viewMode === "list" ? "w-full" : ""}
+								>
+									{state.viewMode === "grid" ? (
+										<AlbumCard album={album} index={index} />
+									) : (
+										// List view
+										<div className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-xl p-6 hover:border-gray-600/50 transition-all duration-300 group">
+											<div className="flex items-center gap-6">
+												{/* Cover */}
+												<div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+													<img
+														src={album.coverArtUrl}
+														alt={album.title}
+														className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+													/>
+													{album.featured && (
+														<div className="absolute top-1 right-1">
+															<Star size={14} className="text-reggae-yellow fill-current" />
+														</div>
+													)}
+												</div>
+
+												{/* Album Info */}
+												<div className="flex-1 min-w-0">
+													<h3 className="font-bold text-white text-xl truncate group-hover:text-reggae-yellow transition-colors duration-300">
+														{album.title}
+													</h3>
+													<p className="text-gray-400 truncate text-lg">{album.artist}</p>
+													<div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+														<span className="flex items-center gap-1">
+															<Calendar size={12} />
+															{formatDate(album.releaseDate)}
+														</span>
+														<span>•</span>
+														<span className="flex items-center gap-1">
+															<Music size={12} />
+															{album.songIds?.length || 0} tracks
+														</span>
+													</div>
+													{album.description && (
+														<p className="text-gray-400 text-sm mt-1 line-clamp-2">{album.description}</p>
+													)}
+												</div>
+
+												{/* Price & Status */}
+												<div className="text-right flex-shrink-0">
+													<div className="flex items-center gap-2 mb-3">
+														<DollarSign size={18} className="text-reggae-yellow" />
+														<span className="font-bold text-reggae-yellow text-xl">
+															{formatPrice(album.price)}
+														</span>
+													</div>
+													{hasPurchased(album._id, "album") && (
+														<span className="text-xs bg-reggae-yellow/20 text-reggae-yellow px-3 py-1 rounded-full">
+															Owned
+														</span>
+													)}
+												</div>
+											</div>
+										</div>
+									)}
+								</motion.div>
+							))}
+						</motion.div>
+
+						{/* Pagination */}
+						{state.pagination.totalPages > 1 && (
+							<motion.div
+								initial="initial"
+								animate="animate"
+								variants={fadeInVariants}
+								transition={{ delay: 0.6 }}
+								className="flex items-center justify-center gap-2"
+							>
+								<button
+									onClick={() => handlePageChange(state.pagination.page - 1)}
+									disabled={!state.pagination.hasPrev}
+									className="px-4 py-2 bg-black/30 border border-gray-700/30 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black/50 transition-all duration-300"
+								>
+									Previous
+								</button>
+
+								{Array.from({ length: Math.min(state.pagination.totalPages, 5) }, (_, i) => {
+									const page = i + Math.max(1, state.pagination.page - 2);
+									if (page > state.pagination.totalPages) return null;
+
+									return (
+										<button
+											key={page}
+											onClick={() => handlePageChange(page)}
+											className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+												page === state.pagination.page
+													? "bg-reggae-yellow text-black"
+													: "bg-black/30 border border-gray-700/30 text-white hover:bg-black/50"
+											}`}
+										>
+											{page}
+										</button>
+									);
+								}).filter(Boolean)}
+
+								<button
+									onClick={() => handlePageChange(state.pagination.page + 1)}
+									disabled={!state.pagination.hasNext}
+									className="px-4 py-2 bg-black/30 border border-gray-700/30 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black/50 transition-all duration-300"
+								>
+									Next
+								</button>
+							</motion.div>
+						)}
+					</>
+				)}
+			</div>
+		</div>
+	);
 };
 
 export default AlbumsPage;

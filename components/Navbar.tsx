@@ -1,224 +1,265 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { SignInButton, SignUpButton, UserButton, useUser } from '@clerk/nextjs';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Music, ShoppingCart, User, Settings } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import { motion, AnimatePresence } from "framer-motion";
+import { Music, Settings } from "lucide-react";
+import Image from "next/image";
 
 const Navbar: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const pathname = usePathname();
-  const { isSignedIn, user } = useUser();
+	const [isOpen, setIsOpen] = useState(false);
+	const [scrolled, setScrolled] = useState(false);
+	const pathname = usePathname();
+	const { isSignedIn, user } = useUser();
 
-  // Handle scroll effect
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+	// Handle scroll effect
+	useEffect(() => {
+		const handleScroll = () => {
+			setScrolled(window.scrollY > 50);
+		};
+		window.addEventListener("scroll", handleScroll);
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, []);
 
-  // Check if user is admin
-  const isAdmin = user?.publicMetadata?.role === 'admin';
+	// Close menu when clicking outside (but not on Clerk elements)
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			const target = event.target as Element;
 
-  const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/songs', label: 'Songs' },
-    { href: '/albums', label: 'Albums' },
-    { href: '/biography', label: 'Biography' },
-  ];
+			// Don't close if clicking on Clerk elements
+			if (
+				target.closest("[data-clerk-element]") ||
+				target.closest(".cl-userButton") ||
+				target.closest(".cl-modal") ||
+				target.closest(".cl-popover")
+			) {
+				return;
+			}
 
-  const authLinks = isSignedIn ? [
-    { href: '/dashboard', label: 'My Music', icon: <Music size={18} /> },
-    ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: <Settings size={18} /> }] : []),
-  ] : [];
+			if (isOpen && !target.closest(".navbar-container")) {
+				setIsOpen(false);
+			}
+		};
 
-  return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
-    }`}>
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 bg-reggae-gradient rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <Music className="text-white" size={24} />
-            </div>
-            <span className={`font-bold text-xl font-serif ${
-              scrolled ? 'text-reggae-dark' : 'text-white'
-            } group-hover:text-reggae-green transition-colors duration-300`}>
-              Rasman Music
-            </span>
-          </Link>
+		document.addEventListener("click", handleClickOutside);
+		return () => document.removeEventListener("click", handleClickOutside);
+	}, [isOpen]);
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {/* Main Nav Links */}
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`font-medium transition-colors duration-300 hover:text-reggae-green relative ${
-                  pathname === link.href 
-                    ? 'text-reggae-green' 
-                    : scrolled ? 'text-gray-700' : 'text-white'
-                }`}
-              >
-                {link.label}
-                {pathname === link.href && (
-                  <motion.div
-                    layoutId="underline"
-                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-reggae-green"
-                  />
-                )}
-              </Link>
-            ))}
+	const isAdmin = user?.publicMetadata?.role === "admin";
 
-            {/* Auth Links */}
-            {authLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex items-center space-x-1 font-medium transition-colors duration-300 hover:text-reggae-green ${
-                  pathname === link.href 
-                    ? 'text-reggae-green' 
-                    : scrolled ? 'text-gray-700' : 'text-white'
-                }`}
-              >
-                {link.icon}
-                <span>{link.label}</span>
-              </Link>
-            ))}
+	const navLinks = [
+		{ href: "/", label: "Home" },
+		{ href: "/songs", label: "Songs" },
+		{ href: "/albums", label: "Albums" },
+		{ href: "/biography", label: "Biography" },
+	];
 
-            {/* Authentication Buttons */}
-            <div className="flex items-center space-x-4">
-              {isSignedIn ? (
-                <UserButton 
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-10 h-10",
-                      userButtonPopoverCard: "shadow-xl border-0",
-                    }
-                  }}
-                />
-              ) : (
-                <div className="flex items-center space-x-3">
-                  <SignInButton mode="modal">
-                    <button className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
-                      scrolled 
-                        ? 'text-gray-700 hover:text-reggae-green' 
-                        : 'text-white hover:text-reggae-yellow'
-                    }`}>
-                      Sign In
-                    </button>
-                  </SignInButton>
-                  <SignUpButton mode="modal">
-                    <button className="bg-reggae-green text-white px-6 py-2 rounded-full font-medium hover:bg-green-600 transition-colors duration-300 shadow-md">
-                      Sign Up
-                    </button>
-                  </SignUpButton>
-                </div>
-              )}
-            </div>
-          </div>
+	const authLinks = isSignedIn
+		? [
+				{ href: "/dashboard", label: "My Music", icon: <Music size={16} /> },
+				...(isAdmin ? [{ href: "/admin", label: "Admin", icon: <Settings size={16} /> }] : []),
+		  ]
+		: [];
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className={`md:hidden p-2 rounded-lg transition-colors duration-300 ${
-              scrolled ? 'text-gray-700' : 'text-white'
-            }`}
-          >
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-      </div>
+	return (
+		<>
+			{/* Backdrop blur overlay when menu is open */}
+			<AnimatePresence>
+				{isOpen && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xl"
+						onClick={() => setIsOpen(false)}
+					/>
+				)}
+			</AnimatePresence>
 
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white border-t shadow-lg"
-          >
-            <div className="container mx-auto px-4 py-6 space-y-4">
-              {/* Navigation Links */}
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`block py-2 font-medium transition-colors duration-300 ${
-                    pathname === link.href 
-                      ? 'text-reggae-green' 
-                      : 'text-gray-700 hover:text-reggae-green'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+			<nav
+				className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 navbar-container ${
+					scrolled ? "bg-black/10 backdrop-blur-xl border-b border-gray-700/20 shadow-2xl" : "bg-transparent"
+				}`}
+			>
+				<div className="container mx-auto px-4">
+					<div className="flex items-center justify-between h-[70px]">
+						{/* Logo */}
+						<Link href="/" className="z-60">
+							<motion.div
+								className="relative"
+								whileHover={{ scale: 1.1 }}
+								transition={{ type: "spring", stiffness: 400, damping: 17 }}
+							>
+								<Image src="/images/logo.svg" alt="Logo" width={40} height={10} className="w-20 h-auto" />
+							</motion.div>
+						</Link>
 
-              {/* Auth Links */}
-              {authLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center space-x-2 py-2 font-medium transition-colors duration-300 ${
-                    pathname === link.href 
-                      ? 'text-reggae-green' 
-                      : 'text-gray-700 hover:text-reggae-green'
-                  }`}
-                >
-                  {link.icon}
-                  <span>{link.label}</span>
-                </Link>
-              ))}
+						<div className="flex-1"></div>
 
-              {/* Mobile Authentication */}
-              {!isSignedIn && (
-                <div className="pt-4 border-t space-y-3">
-                  <SignInButton mode="modal">
-                    <button 
-                      onClick={() => setIsOpen(false)}
-                      className="w-full text-left py-2 text-gray-700 hover:text-reggae-green font-medium"
-                    >
-                      Sign In
-                    </button>
-                  </SignInButton>
-                  <SignUpButton mode="modal">
-                    <button 
-                      onClick={() => setIsOpen(false)}
-                      className="w-full bg-reggae-green text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors duration-300"
-                    >
-                      Sign Up
-                    </button>
-                  </SignUpButton>
-                </div>
-              )}
+						{/* Hamburger Menu Button */}
+						<motion.button
+							onClick={() => setIsOpen(!isOpen)}
+							className={`relative p-2 rounded-lg transition-all duration-300 z-60 ${
+								scrolled
+									? "bg-gray-800/30 backdrop-blur-md border border-gray-700/30"
+									: "bg-black/30 backdrop-blur-sm border border-gray-600/20"
+							} hover:bg-gray-800/50 group`}
+							whileHover={{ scale: 1.05 }}
+							whileTap={{ scale: 0.95 }}
+						>
+							<div className="relative w-5 h-5">
+								<motion.div
+									animate={isOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
+									className="absolute top-1 left-0 w-5 h-0.5 bg-white rounded-full"
+								/>
+								<motion.div
+									animate={isOpen ? { opacity: 0 } : { opacity: 1 }}
+									className="absolute top-2.5 left-0 w-5 h-0.5 bg-white rounded-full"
+								/>
+								<motion.div
+									animate={isOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
+									className="absolute top-4 left-0 w-5 h-0.5 bg-white rounded-full"
+								/>
+							</div>
+							<div className="absolute inset-0 bg-gradient-to-br from-reggae-green/20 to-reggae-yellow/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+						</motion.button>
+					</div>
+				</div>
 
-              {isSignedIn && (
-                <div className="pt-4 border-t">
-                  <div className="flex items-center space-x-3">
-                    <UserButton />
-                    <span className="text-gray-700 font-medium">
-                      {user?.firstName || user?.emailAddresses[0]?.emailAddress}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
-  );
+				{/* Futuristic Dropdown Menu */}
+				<AnimatePresence>
+					{isOpen && (
+						<motion.div
+							initial={{ opacity: 0, y: -20, scale: 0.95 }}
+							animate={{ opacity: 1, y: 0, scale: 1 }}
+							exit={{ opacity: 0, y: -20, scale: 0.95 }}
+							transition={{ type: "spring", stiffness: 400, damping: 25 }}
+							className="absolute top-full right-4 mt-2 w-80 bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl shadow-2xl overflow-hidden z-[60]"
+						>
+							<div className="relative p-6 space-y-1 z-[60]">
+								{/* Navigation Links */}
+								<div className="space-y-1 mb-6">
+									{navLinks.map((link, index) => (
+										<motion.div
+											key={link.href}
+											initial={{ opacity: 0, x: -20 }}
+											animate={{ opacity: 1, x: 0 }}
+											transition={{ delay: index * 0.1 }}
+										>
+											<Link
+												href={link.href}
+												onClick={() => setIsOpen(false)}
+												className={`block py-3 px-4 rounded-xl font-medium transition-all duration-300 group relative z-[60] ${
+													pathname === link.href
+														? "text-reggae-green bg-green-800/10"
+														: "text-gray-200 hover:text-reggae-green hover:bg-green-800/20"
+												}`}
+											>
+												<span className="relative z-[60]">{link.label}</span>
+											</Link>
+										</motion.div>
+									))}
+								</div>
+
+								{/* Auth Links */}
+								{authLinks.length > 0 && (
+									<div className="space-y-1 mb-6">
+										<div className="text-gray-100/50 text-sm font-medium px-4 mb-2">My Account</div>
+										{authLinks.map((link, index) => (
+											<motion.div
+												key={link.href}
+												initial={{ opacity: 0, x: -20 }}
+												animate={{ opacity: 1, x: 0 }}
+												transition={{ delay: (navLinks.length + index) * 0.1 }}
+											>
+												<Link
+													href={link.href}
+													onClick={() => setIsOpen(false)}
+													className={`flex items-center space-x-3 py-3 px-4 rounded-xl font-medium transition-all duration-300 group relative z-[60] ${
+														pathname === link.href
+															? "text-reggae-green bg-gray-800/40"
+															: "text-gray-200 hover:text-reggae-green hover:bg-gray-800/20"
+													}`}
+												>
+													<span className="text-gray-400 group-hover:text-reggae-green transition-colors">
+														{link.icon}
+													</span>
+													<span>{link.label}</span>
+												</Link>
+											</motion.div>
+										))}
+									</div>
+								)}
+
+								{/* Authentication Section */}
+								<div className="border-t border-gray-700/30 pt-6">
+									{isSignedIn ? (
+										<motion.div
+											initial={{ opacity: 0, y: 10 }}
+											animate={{ opacity: 1, y: 0 }}
+											transition={{ delay: 0.3 }}
+											className="flex items-center space-x-4 p-4 bg-green-800/10 rounded-xl border border-gray-700/20 relative z-[60]"
+										>
+											<div className="relative z-[70]">
+												<UserButton
+													appearance={{
+														elements: {
+															avatarBox: "w-12 h-12 rounded-xl",
+														},
+													}}
+												/>
+											</div>
+											<div className="flex-1 min-w-0">
+												<div className="text-gray-200 font-medium truncate">{user?.firstName || "User"}</div>
+												<div className="text-gray-100/50 text-sm truncate">
+													{user?.emailAddresses[0]?.emailAddress}
+												</div>
+											</div>
+										</motion.div>
+									) : (
+										<motion.div
+											initial={{ opacity: 0, y: 10 }}
+											animate={{ opacity: 1, y: 0 }}
+											transition={{ delay: 0.3 }}
+											className="space-y-3 relative z-[60]"
+										>
+											<div className="relative z-[60]">
+												<SignInButton mode="modal">
+													<button
+														onClick={() => setIsOpen(false)}
+														className="w-full py-3 px-6 text-gray-200 hover:text-reggae-green font-medium transition-all duration-300 hover:bg-gray-800/30 rounded-xl border border-gray-700/30 hover:border-reggae-green/50 backdrop-blur-sm relative z-[60]"
+													>
+														Sign In
+													</button>
+												</SignInButton>
+											</div>
+											<div className="relative z-[60]">
+												<SignUpButton mode="modal">
+													<button
+														onClick={() => setIsOpen(false)}
+														className="w-full bg-gradient-to-r from-reggae-green/80 to-green-600/80 text-white py-3 px-6 rounded-xl font-medium hover:from-reggae-green hover:to-green-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] border border-reggae-green/30 backdrop-blur-sm relative z-[60]"
+													>
+														Sign Up
+													</button>
+												</SignUpButton>
+											</div>
+										</motion.div>
+									)}
+								</div>
+							</div>
+
+							{/* Animated border effect */}
+							<div className="absolute inset-0 rounded-2xl">
+								<div className="absolute inset-0 rounded-2xl border border-transparent bg-gradient-to-r from-reggae-green/30 via-transparent to-reggae-yellow/30 opacity-30" />
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
+			</nav>
+		</>
+	);
 };
 
 export default Navbar;

@@ -5,16 +5,14 @@ import { Purchase, Song, Album } from "@/lib/models";
 import { S3Service } from "@/lib/s3";
 
 interface DownloadRouteParams {
-	params: {
-		itemId: string;
-	};
+	params: Promise<{ itemId: string }>;
 }
 
 // POST /api/download/[itemId] - Generate secure download links
 export async function POST(request: NextRequest, { params }: DownloadRouteParams) {
 	try {
 		const { userId } = auth();
-		const { itemId } = params;
+		const { itemId } = await params;
 
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
@@ -112,7 +110,7 @@ export async function POST(request: NextRequest, { params }: DownloadRouteParams
 export async function GET(request: NextRequest, { params }: DownloadRouteParams) {
 	try {
 		const { userId } = auth();
-		const { itemId } = params;
+		const { itemId } = await params;
 
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
@@ -177,7 +175,7 @@ export async function GET(request: NextRequest, { params }: DownloadRouteParams)
 export async function DELETE(request: NextRequest, { params }: DownloadRouteParams) {
 	try {
 		const { userId } = auth();
-		const { itemId } = params;
+		const { itemId } = await params;
 
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });

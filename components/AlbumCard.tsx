@@ -1,259 +1,262 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { Play, Music, Calendar, Download, Heart } from 'lucide-react';
-import { IAlbum } from '@/lib/models';
-import PurchaseButton from './PurchaseButton';
+import React from "react";
+import { motion } from "framer-motion";
+import { Music, ShoppingCart, Lock, CheckCircle, Download } from "lucide-react";
+import { useUser, SignInButton } from "@clerk/nextjs";
+import Image from "next/image";
+import Link from "next/link";
+import { useAudio } from "@/provider/AudioProvider";
+import { IAlbum } from "@/lib/models";
 
 interface AlbumCardProps {
-  album: IAlbum;
-  showPurchaseButton?: boolean;
-  isOwned?: boolean;
-  className?: string;
-  variant?: 'default' | 'compact' | 'detailed';
+	album: IAlbum;
+	index: number;
+	purchaseId?: string;
+	viewMode?: "grid" | "list";
 }
 
-const AlbumCard: React.FC<AlbumCardProps> = ({
-  album,
-  showPurchaseButton = true,
-  isOwned = false,
-  className = '',
-  variant = 'default'
-}) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+const AlbumCard: React.FC<AlbumCardProps> = ({ album, index, purchaseId, viewMode = "grid" }) => {
+	const { isSignedIn } = useUser();
+	const {
+		downloadAlbum, // You'll need to implement this in AudioContext
+		purchaseAlbum, // You'll need to implement this in AudioContext
+		hasPurchased,
+	} = useAudio();
 
-  // Format price in Naira
-  const formatPrice = (price: number): string => {
-    return `₦${price.toLocaleString()}`;
-  };
+	const purchased = hasPurchased(album._id, "album");
 
-  // Format date
-  const formatDate = (date: Date | string): string => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleDateString('en-GB', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
+	const handleDownload = () => {
+		if (purchased && purchaseId) {
+			// downloadAlbum(album, purchaseId);
+			console.log("Download album - implement in AudioContext");
+		}
+	};
 
-  const cardVariants = {
-    initial: { opacity: 0, scale: 0.9 },
-    animate: { 
-      opacity: 1, 
-      scale: 1,
-      transition: { duration: 0.3 }
-    },
-    hover: { 
-      scale: 1.02,
-      transition: { duration: 0.2 }
-    }
-  };
+	const handlePurchase = () => {
+		if (isSignedIn && !purchased) {
+			// purchaseAlbum(album);
+			console.log("Purchase album - implement in AudioContext");
+		}
+	};
 
-  const overlayVariants = {
-    initial: { opacity: 0 },
-    hover: { opacity: 1 }
-  };
+	const formatPrice = (price: number) => {
+		return new Intl.NumberFormat("en-US", {
+			style: "currency",
+			currency: "USD",
+			minimumFractionDigits: 2,
+		}).format(price);
+	};
 
-  // Compact variant for smaller spaces
-  if (variant === 'compact') {
-    return (
-      <motion.div
-        variants={cardVariants}
-        initial="initial"
-        animate="animate"
-        whileHover="hover"
-        className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-4 ${className}`}
-      >
-        <div className="flex items-center gap-4">
-          {/* Cover Art */}
-          <div className="relative w-16 h-16 flex-shrink-0">
-            {!imageError ? (
-              <Image
-                src={album.coverArtUrl}
-                alt={`${album.title} cover`}
-                fill
-                className={`object-cover rounded-lg transition-opacity duration-300 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
-                onLoad={() => setImageLoaded(true)}
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <div className="w-full h-full bg-reggae-gradient rounded-lg flex items-center justify-center">
-                <Music className="text-white" size={20} />
-              </div>
-            )}
-          </div>
+	// Grid View
+	if (viewMode === "grid") {
+		return (
+			<motion.div
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ delay: index * 0.1 }}
+				className="group relative overflow-hidden rounded-xl bg-black/10 backdrop-blur-md transition-all duration-500 hover:scale-[1.02] hover:shadow-xl w-[300px] h-[300px] flex-shrink-0"
+			>
+				{/* Background Gradient */}
+				<div className="absolute inset-0 bg-gradient-to-br from-reggae-yellow/5 via-transparent to-reggae-green/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-          {/* Album Info */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-lg text-gray-900 truncate">{album.title}</h3>
-            <p className="text-gray-600 truncate">{album.artist}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-gray-500">
-                {album.songIds?.length || 0} tracks
-              </span>
-              {album.featured && (
-                <span className="px-2 py-1 bg-reggae-yellow/20 text-reggae-yellow rounded-full text-xs">
-                  Featured
-                </span>
-              )}
-            </div>
-          </div>
+				{/* Content */}
+				<div className="relative p-8 h-full flex flex-col justify-between">
+					{/* Cover Art */}
+					<div className="relative w-[170px] h-[170px] mx-auto rounded-lg overflow-hidden bg-black/20 mb-4">
+						<Image
+							src={album.coverArtUrl}
+							alt={album.title}
+							width={170}
+							height={170}
+							className="object-cover transition-transform duration-500 group-hover:scale-110"
+						/>
 
-          {/* Price and Action */}
-          <div className="text-right">
-            <div className="font-bold text-xl text-reggae-green">
-              {formatPrice(album.price)}
-            </div>
-            {isOwned ? (
-              <button className="p-2 bg-reggae-green text-white rounded-lg hover:bg-green-600 transition-colors mt-2">
-                <Download size={16} />
-              </button>
-            ) : showPurchaseButton && (
-              <PurchaseButton
-                item={album}
-                itemType="album"
-                size="sm"
-                className="mt-2"
-              />
-            )}
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
+						{/* Track count badge */}
+						<div className="absolute top-2 left-2">
+							<div className="bg-black/50 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-white">
+								{album.songIds?.length || 0}
+							</div>
+						</div>
 
-  // Default variant
-  return (
-    <motion.div
-      variants={cardVariants}
-      initial="initial"
-      animate="animate"
-      whileHover="hover"
-      className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group ${className}`}
-    >
-      {/* Cover Art */}
-      <div className="relative aspect-square">
-        {!imageError ? (
-          <Image
-            src={album.coverArtUrl}
-            alt={`${album.title} cover`}
-            fill
-            className={`object-cover transition-all duration-300 group-hover:scale-105 ${
-              imageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <div className="w-full h-full bg-reggae-gradient flex items-center justify-center">
-            <Music className="text-white" size={64} />
-          </div>
-        )}
+						{/* Purchase status indicator */}
+						{isSignedIn && purchased && (
+							<div className="absolute top-2 right-2">
+								<div className="bg-reggae-yellow/90 backdrop-blur-sm rounded-full p-1">
+									<CheckCircle size={12} className="text-black" />
+								</div>
+							</div>
+						)}
 
-        {/* Featured Badge */}
-        {album.featured && (
-          <div className="absolute top-3 left-3 px-2 py-1 bg-reggae-yellow text-black text-xs font-bold rounded-full">
-            Featured
-          </div>
-        )}
+						{/* Overlay with action button */}
+						<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+							{!isSignedIn ? (
+								<SignInButton mode="modal">
+									<motion.button
+										className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/30 transition-colors duration-300"
+										whileHover={{ scale: 1.1 }}
+										whileTap={{ scale: 0.95 }}
+									>
+										<Lock size={16} />
+									</motion.button>
+								</SignInButton>
+							) : purchased ? (
+								<Link href={`/albums/${album._id}`}>
+									<motion.button
+										className="w-12 h-12 rounded-full bg-reggae-yellow/90 backdrop-blur-sm flex items-center justify-center text-black hover:bg-reggae-yellow transition-colors duration-300"
+										whileHover={{ scale: 1.1 }}
+										whileTap={{ scale: 0.95 }}
+									>
+										<Music size={16} />
+									</motion.button>
+								</Link>
+							) : (
+								<motion.button
+									onClick={handlePurchase}
+									className="w-12 h-12 rounded-full bg-reggae-green/90 backdrop-blur-sm flex items-center justify-center text-white hover:bg-reggae-green transition-colors duration-300"
+									whileHover={{ scale: 1.1 }}
+									whileTap={{ scale: 0.95 }}
+								>
+									<ShoppingCart size={16} />
+								</motion.button>
+							)}
+						</div>
 
-        {/* Play Button Overlay */}
-        <motion.div
-          variants={overlayVariants}
-          className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer"
-        >
-          <Link href={`/album/${album._id}`}>
-            <motion.div
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg"
-            >
-              <Play className="text-reggae-dark ml-1" size={24} />
-            </motion.div>
-          </Link>
-        </motion.div>
+						{/* Download button - bottom right when purchased */}
+						{isSignedIn && purchased && purchaseId && (
+							<motion.button
+								onClick={handleDownload}
+								className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors duration-300 opacity-0 group-hover:opacity-100"
+								whileHover={{ scale: 1.1 }}
+								whileTap={{ scale: 0.95 }}
+								title="Download Album"
+							>
+								<Download size={14} />
+							</motion.button>
+						)}
+					</div>
 
-        {/* Owned Badge */}
-        {isOwned && (
-          <div className="absolute top-3 right-3 p-2 bg-reggae-green text-white rounded-full">
-            <Download size={16} />
-          </div>
-        )}
-      </div>
+					{/* Album Info */}
+					<div>
+						<h3 className="mb-[2px] font-bold text-gray-300 text-sm leading-tight line-clamp-2 group-hover:text-reggae-yellow transition-colors duration-300">
+							{album.title}
+						</h3>
+						{album.description && (
+							<p className="text-gray-400 text-xs line-clamp-1 mb-1">{album.description}</p>
+						)}
+						<div className="flex items-center justify-between text-xs">
+							<span className="text-reggae-yellow font-semibold">{formatPrice(album.price)}</span>
+							<span className="text-gray-400">ALBUM</span>
+						</div>
+					</div>
+				</div>
+			</motion.div>
+		);
+	}
 
-      {/* Album Details */}
-      <div className="p-6">
-        <div className="mb-4">
-          <Link href={`/album/${album._id}`}>
-            <h3 className="font-bold text-xl text-gray-900 mb-1 hover:text-reggae-green transition-colors line-clamp-1">
-              {album.title}
-            </h3>
-          </Link>
-          <p className="text-gray-600 text-lg">
-            {album.artist}
-          </p>
-        </div>
+	// List View
+	return (
+		<motion.div
+			initial={{ opacity: 0, x: -20 }}
+			animate={{ opacity: 1, x: 0 }}
+			transition={{ delay: index * 0.05 }}
+			className="group relative overflow-hidden rounded-lg bg-black/10 backdrop-blur-md transition-all duration-300 hover:bg-black/20 flex items-center p-4 gap-4"
+		>
+			{/* Background Gradient */}
+			<div className="absolute inset-0 bg-gradient-to-r from-reggae-yellow/5 via-transparent to-reggae-green/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-        {/* Album Meta */}
-        <div className="flex flex-wrap items-center gap-3 mb-4 text-sm text-gray-500">
-          <span className="flex items-center gap-1">
-            <Music size={14} />
-            {album.songIds?.length || 0} tracks
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar size={14} />
-            {formatDate(album.releaseDate)}
-          </span>
-        </div>
+			{/* Cover Art */}
+			<div className="relative w-16 h-16 rounded-lg overflow-hidden bg-black/20 flex-shrink-0">
+				<Image
+					src={album.coverArtUrl}
+					alt={album.title}
+					width={64}
+					height={64}
+					className="object-cover transition-transform duration-300 group-hover:scale-110"
+				/>
 
-        {/* Description */}
-        {album.description && (
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-            {album.description}
-          </p>
-        )}
+				{/* Track count badge */}
+				<div className="absolute top-1 left-1">
+					<div className="bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5 text-xs text-white">
+						{album.songIds?.length || 0}
+					</div>
+				</div>
 
-        {/* Price and Purchase */}
-        <div className="flex items-center justify-between">
-          <div className="font-bold text-2xl text-reggae-green">
-            {formatPrice(album.price)}
-          </div>
-          
-          {isOwned ? (
-            <div className="flex gap-2">
-              <button className="p-2 bg-reggae-green text-white rounded-lg hover:bg-green-600 transition-colors">
-                <Download size={18} />
-              </button>
-              <button className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors">
-                <Heart size={18} />
-              </button>
-            </div>
-          ) : showPurchaseButton ? (
-            <PurchaseButton
-              item={album}
-              itemType="album"
-              className="px-6 py-3 text-sm font-semibold"
-            />
-          ) : (
-            <Link
-              href={`/album/${album._id}`}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              <Play size={16} />
-              View Album
-            </Link>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
+				{/* Purchase status indicator */}
+				{isSignedIn && purchased && (
+					<div className="absolute top-1 right-1">
+						<div className="bg-reggae-yellow/90 backdrop-blur-sm rounded-full p-0.5">
+							<CheckCircle size={8} className="text-black" />
+						</div>
+					</div>
+				)}
+			</div>
+
+			{/* Album Info */}
+			<div className="flex-1 min-w-0">
+				<h3 className="font-bold text-gray-300 text-sm truncate group-hover:text-reggae-yellow transition-colors duration-300">
+					{album.title}
+				</h3>
+				<p className="text-gray-400 text-xs truncate">
+					{album.description || `${album.songIds?.length || 0} tracks`}
+				</p>
+			</div>
+
+			{/* Album indicator */}
+			<div className="text-gray-400 text-xs font-medium">ALBUM</div>
+
+			{/* Price */}
+			<div className="text-reggae-yellow font-semibold text-sm">{formatPrice(album.price)}</div>
+
+			{/* Actions */}
+			<div className="flex items-center gap-2">
+				{/* Download button for purchased albums */}
+				{isSignedIn && purchased && purchaseId && (
+					<motion.button
+						onClick={handleDownload}
+						className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-colors duration-300 opacity-0 group-hover:opacity-100"
+						whileHover={{ scale: 1.1 }}
+						whileTap={{ scale: 0.95 }}
+						title="Download Album"
+					>
+						<Download size={14} />
+					</motion.button>
+				)}
+
+				{/* View/Purchase button */}
+				{!isSignedIn ? (
+					<SignInButton mode="modal">
+						<motion.button
+							className="w-8 h-8 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/30 transition-colors duration-300"
+							whileHover={{ scale: 1.1 }}
+							whileTap={{ scale: 0.95 }}
+						>
+							<Lock size={14} />
+						</motion.button>
+					</SignInButton>
+				) : purchased ? (
+					<Link href={`/albums/${album._id}`}>
+						<motion.button
+							className="w-8 h-8 rounded-full bg-reggae-yellow/90 backdrop-blur-sm flex items-center justify-center text-black hover:bg-reggae-yellow transition-colors duration-300"
+							whileHover={{ scale: 1.1 }}
+							whileTap={{ scale: 0.95 }}
+						>
+							<Music size={14} />
+						</motion.button>
+					</Link>
+				) : (
+					<motion.button
+						onClick={handlePurchase}
+						className="w-8 h-8 rounded-full bg-reggae-green/90 backdrop-blur-sm flex items-center justify-center text-white hover:bg-reggae-green transition-colors duration-300"
+						whileHover={{ scale: 1.1 }}
+						whileTap={{ scale: 0.95 }}
+					>
+						<ShoppingCart size={14} />
+					</motion.button>
+				)}
+			</div>
+		</motion.div>
+	);
 };
 
 export default AlbumCard;

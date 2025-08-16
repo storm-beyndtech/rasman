@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/mongodb";
-import { Song, Album, Purchase, UserProfile } from "@/lib/models";
+import { Song, Album, Purchase, UserProfile, ISong, IAlbum } from "@/lib/models";
 import { purchaseSchema } from "@/lib/validations";
 import { PaystackService } from "@/lib/paystack";
+import { S3Service } from "@/lib/s3";
 
 // POST /api/purchase - Initialize purchase
 export async function POST(request: NextRequest) {
@@ -15,11 +16,16 @@ export async function POST(request: NextRequest) {
 
 		await connectDB();
 
-		// Get user profile
-		const userProfile = await UserProfile.findOne({ clerkId: userId });
-		if (!userProfile) {
-			return NextResponse.json({ success: false, error: "User profile not found" }, { status: 404 });
+		// Get full user data with null check
+		const clerkUser = await currentUser();
+		if (!clerkUser) {
+			return NextResponse.json({ error: "User not found" }, { status: 404 });
 		}
+
+		// user details
+		const email = clerkUser.emailAddresses[0]?.emailAddress || "";
+		const firstName = clerkUser.firstName || "";
+		const lastName = clerkUser.lastName || "";
 
 		const body = await request.json();
 
@@ -37,14 +43,6 @@ export async function POST(request: NextRequest) {
 
 		if (!item) {
 			return NextResponse.json({ success: false, error: `${itemType} not found` }, { status: 404 });
-		}
-
-		// Verify the amount matches the item price
-		if (amount !== item.price) {
-			return NextResponse.json(
-				{ success: false, error: "Amount does not match item price" },
-				{ status: 400 },
-			);
 		}
 
 		// Check if user already owns this item
@@ -76,8 +74,8 @@ export async function POST(request: NextRequest) {
 
 		// Initialize Paystack payment
 		const paymentResult = await PaystackService.initializePayment({
-			email: userProfile.email,
-			amount: PaystackService.toKobo(amount), // Convert to kobo
+			email,
+			amount: PaystackService.toKobo(amount),
 			reference,
 			metadata: {
 				userId,
@@ -85,22 +83,31 @@ export async function POST(request: NextRequest) {
 				itemType,
 				purchaseId: purchase._id.toString(),
 				itemTitle: item.title,
-				customerName: `${userProfile.firstName || ""} ${userProfile.lastName || ""}`.trim(),
+				customerName: `${firstName} ${lastName}`.trim(),
 			},
 		});
 
 		if (!paymentResult.success) {
-			// Delete the pending purchase if payment initialization fails
 			await Purchase.findByIdAndDelete(purchase._id);
-
 			return NextResponse.json({ success: false, error: paymentResult.error }, { status: 500 });
 		}
 
 		if (!paymentResult.data || !paymentResult.data.authorization_url) {
-			// Delete the pending purchase if payment initialization fails
 			await Purchase.findByIdAndDelete(purchase._id);
-
 			return NextResponse.json({ success: false, error: "Failed to initialize payment" }, { status: 500 });
+		}
+
+		let userProfile = await UserProfile.findOne({ clerkId: userId });
+		if (!userProfile) {
+			userProfile = new UserProfile({
+				clerkId: userId,
+				email,
+				firstName,
+				lastName,
+				role: "user",
+				purchases: [],
+			});
+			await userProfile.save();
 		}
 
 		return NextResponse.json({
@@ -163,17 +170,20 @@ export async function GET(request: NextRequest) {
 		// Populate item details
 		const purchasesWithItems = await Promise.all(
 			purchases.map(async (purchase) => {
-				let item;
+				let item: ISong | IAlbum | null;
 				if (purchase.itemType === "song") {
-					item = await Song.findById(purchase.itemId)
-						.select("title artist coverArtUrl duration genre")
-						.lean();
+					item = (await Song.findById(purchase.itemId).lean()) as ISong | null;
 				} else {
-					item = await Album.findById(purchase.itemId).select("title artist coverArtUrl description").lean();
+					item = (await Album.findById(purchase.itemId).lean()) as IAlbum | null;
+				}
+
+				// Convert S3 key to signed URL
+				if (item && item.coverArtUrl) {
+					item.coverArtUrl = await S3Service.getSignedDownloadUrl(item.coverArtUrl, 3600);
 				}
 
 				return {
-					...purchase,
+					...JSON.parse(JSON.stringify(purchase)),
 					item,
 				};
 			}),

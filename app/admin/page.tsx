@@ -1,368 +1,394 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { motion } from 'framer-motion';
-import { 
-  BarChart3, 
-  Users, 
-  Music, 
-  Album as AlbumIcon, 
-  DollarSign, 
-  TrendingUp,
-  Upload,
-  Settings,
-  Download,
-  Eye,
-  Plus
-} from 'lucide-react';
-import AdminUploadForm from '@/components/admin/AdminUploadForm';
-import AdminAnalytics from '@/components/admin/AdminAnalytics';
-import AdminUserManagement from '@/components/admin/AdminUserManagement';
-import AdminContentManagement from '@/components/admin/AdminContentManagement';
-import { LoadingSpinner, ErrorMessage } from '@/components/UtilityComponents';
+import React from "react";
+import { useUser, RedirectToSignIn } from "@clerk/nextjs";
+import { motion } from "framer-motion";
+import {
+	Music,
+	Disc,
+	Users,
+	DollarSign,
+	TrendingUp,
+	Calendar,
+	ShoppingBag,
+	Loader2,
+	ArrowUpRight,
+	ArrowDownRight,
+	Upload,
+	Album,
+	Eye,
+} from "lucide-react";
+import { useDashboardStats } from "../hooks/admin";
 
-interface AdminDashboardState {
-  loading: boolean;
-  error: string | null;
-  activeTab: 'overview' | 'upload' | 'content' | 'users' | 'analytics';
-  stats: {
-    totalSongs: number;
-    totalAlbums: number;
-    totalUsers: number;
-    totalRevenue: number;
-    recentSales: number;
-    monthlyGrowth: number;
-  };
-  recentActivity: Array<{
-    id: string;
-    type: 'purchase' | 'upload' | 'user_signup';
-    description: string;
-    timestamp: string;
-    amount?: number;
-  }>;
+export default function AdminDashboard() {
+	const { isLoaded, user } = useUser();
+	const { data, isLoading, isError, error } = useDashboardStats();
+
+	if (!isLoaded) {
+		return (
+			<div className="flex items-center justify-center py-20">
+				<Loader2 className="w-8 h-8 text-reggae-green animate-spin mx-auto mb-4" />
+				<p className="text-gray-400">Loading user...</p>
+			</div>
+		);
+	}
+
+	if (!user) {
+		return <RedirectToSignIn />;
+	}
+
+	// Optional: Keep client-side admin check as fallback
+	if (user.publicMetadata?.role !== "admin") {
+		return (
+			<div className="text-center py-20 text-red-500">
+				<p>Access denied. Admin privileges required.</p>
+			</div>
+		);
+	}
+
+	if (isError) {
+		let message = "Failed to load dashboard data.";
+		if (error?.message?.includes("401")) {
+			message = "Unauthorized. Please log in as admin.";
+		} else if (error?.message?.includes("403")) {
+			message = "Access denied. Admin role required.";
+		} else if (error?.message?.includes("500")) {
+			message = "Server error. Please try again later.";
+		}
+		return (
+			<div className="text-center py-20 text-red-500">
+				<p>{message}</p>
+			</div>
+		);
+	}
+
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center py-20">
+				<Loader2 className="w-8 h-8 text-reggae-green animate-spin mx-auto mb-4" />
+				<p className="text-gray-400">Loading dashboard...</p>
+			</div>
+		);
+	}
+
+	const stats = data?.stats || {
+		totalSongs: 0,
+		totalAlbums: 0,
+		totalUsers: 0,
+		totalRevenue: 0,
+		recentSales: 0,
+		monthlyGrowth: 0,
+		activeSessions: 0,
+	};
+	const recentActivity = data?.recentActivity || [];
+
+	const formatCurrency = (amount: number = 0): string => {
+		return `₦${amount.toLocaleString()}`;
+	};
+
+	const formatPercentage = (value: number = 0): string => {
+		return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+	};
+
+	const statsCards = [
+		{
+			title: "Total Revenue",
+			value: formatCurrency(stats.totalRevenue),
+			change: formatPercentage(stats.monthlyGrowth),
+			icon: <DollarSign size={28} />,
+			color: "from-green-500/10 to-green-600/5 border-green-500/30",
+			iconColor: "text-green-400",
+			positive: stats.monthlyGrowth >= 0,
+		},
+		{
+			title: "Total Users",
+			value: (stats.totalUsers || 0).toLocaleString(),
+			change: "Platform users",
+			icon: <Users size={28} />,
+			color: "from-blue-500/10 to-blue-600/5 border-blue-500/30",
+			iconColor: "text-blue-400",
+			positive: true,
+		},
+		{
+			title: "Songs Published",
+			value: stats.totalSongs || 0,
+			change: "Total tracks",
+			icon: <Music size={28} />,
+			color: "from-reggae-green/10 to-green-600/5 border-reggae-green/30",
+			iconColor: "text-reggae-green",
+			positive: true,
+		},
+		{
+			title: "Albums Published",
+			value: stats.totalAlbums || 0,
+			change: "Total albums",
+			icon: <Disc size={28} />,
+			color: "from-purple-500/10 to-purple-600/5 border-purple-500/30",
+			iconColor: "text-purple-400",
+			positive: true,
+		},
+		{
+			title: "Recent Sales",
+			value: stats.recentSales || 0,
+			change: "Last 7 days",
+			icon: <ShoppingBag size={28} />,
+			color: "from-yellow-500/10 to-yellow-600/5 border-yellow-500/30",
+			iconColor: "text-yellow-400",
+			positive: true,
+		},
+		{
+			title: "Active Sessions",
+			value: stats.activeSessions || 0,
+			change: "Currently online",
+			icon: <Eye size={28} />,
+			color: "from-orange-500/10 to-orange-600/5 border-orange-500/30",
+			iconColor: "text-orange-400",
+			positive: true,
+		},
+	];
+
+	return (
+		<div className="space-y-20">
+			{/* Stats Cards */}
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				{statsCards.map((stat, index) => (
+					<motion.div
+						key={index}
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ delay: index * 0.1 }}
+						className={`group bg-black/20 backdrop-blur-2xl border rounded-2xl p-6 hover:scale-[1.02] transition-all duration-500 hover:shadow-xl ${stat.color}`}
+					>
+						<div
+							className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl ${stat.color}`}
+						/>
+						<div className="relative z-10">
+							<div className="flex items-center justify-between mb-4">
+								<div
+									className={`w-14 h-14 rounded-xl bg-black/30 backdrop-blur-sm border border-gray-700/30 flex items-center justify-center ${stat.iconColor}`}
+								>
+									{stat.icon}
+								</div>
+								<div
+									className={`flex items-center gap-1 ${stat.positive ? "text-green-400" : "text-red-400"}`}
+								>
+									{stat.positive ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+									<span className="text-sm font-medium">{stat.change}</span>
+								</div>
+							</div>
+							<div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+							<div className="font-medium text-gray-300 group-hover:text-white transition-colors duration-300">
+								{stat.title}
+							</div>
+						</div>
+					</motion.div>
+				))}
+			</div>
+
+			{/* Main Content Grid */}
+			<div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+				{/* Recent Activity */}
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: 0.7 }}
+					className="xl:col-span-2 bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+				>
+					<div className="flex items-center justify-between mb-6">
+						<h3 className="text-xl font-bold text-white">Recent Activity</h3>
+					</div>
+					{recentActivity.length > 0 ? (
+						<div className="space-y-4">
+							{recentActivity.slice(0, 6).map((activity: any) => (
+								<div
+									key={activity.id}
+									className="flex items-center gap-4 p-4 bg-black/20 rounded-xl border border-gray-700/20 hover:border-gray-600/30 transition-all duration-200"
+								>
+									<div
+										className={`w-10 h-10 rounded-full flex items-center justify-center ${
+											activity.type === "purchase"
+												? "bg-emerald-500/20 text-emerald-400"
+												: activity.type === "upload"
+												? "bg-blue-500/20 text-blue-400"
+												: "bg-purple-500/20 text-purple-400"
+										}`}
+									>
+										{activity.type === "purchase" ? (
+											<DollarSign size={18} />
+										) : activity.type === "upload" ? (
+											<Music size={18} />
+										) : (
+											<Users size={18} />
+										)}
+									</div>
+									<div className="flex-1 min-w-0">
+										<p className="font-medium text-white truncate">{activity.description}</p>
+										<p className="text-sm text-gray-400">{activity.timestamp}</p>
+									</div>
+									{activity.amount && (
+										<div>
+											<div
+												className={`text-sm font-semibold ${
+													activity.status === "pending" ? "text-orange-300" : "text-green-400"
+												}`}
+											>
+												{formatCurrency(activity.amount)}
+											</div>
+											<div
+												className={`text-[9px] font-medium ${
+													activity.status === "pending" ? "text-orange-400" : "text-emerald-400"
+												}`}
+											>
+												{activity.status}
+											</div>
+										</div>
+									)}
+								</div>
+							))}
+						</div>
+					) : (
+						<div className="text-center py-12">
+							<div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+								<Calendar className="w-8 h-8 text-gray-500" />
+							</div>
+							<h4 className="text-lg font-semibold text-gray-300 mb-2">No Activity Yet</h4>
+							<p className="text-gray-500 text-sm max-w-xs mx-auto">
+								Activity will appear here as users upload content, make purchases, and interact with the
+								platform.
+							</p>
+						</div>
+					)}
+				</motion.div>
+
+				{/* Performance Summary */}
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: 0.8 }}
+					className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+				>
+					<h3 className="text-xl font-bold text-white mb-6">Performance Metrics</h3>
+					<div className="space-y-6">
+						<div>
+							<div className="flex items-center justify-between mb-3">
+								<span className="text-xs font-medium text-gray-300">Monthly Revenue Goal</span>
+								<span className="text-xs font-semibold text-white">
+									{formatCurrency(stats.totalRevenue)} / ₦500,000
+								</span>
+							</div>
+							<div className="w-full bg-gray-700/30 rounded-full h-1">
+								<div
+									className="bg-gradient-to-r from-reggae-red via-reggae-yellow to-reggae-green h-2 rounded-full transition-all duration-500"
+									style={{ width: `${Math.min((stats.totalRevenue / 500000) * 100, 100)}%` }}
+								/>
+							</div>
+							<p className="text-xs text-gray-500 mt-2">
+								{((stats.totalRevenue / 500000) * 100).toFixed(1)}% of monthly target
+							</p>
+						</div>
+						<div>
+							<div className="flex items-center justify-between mb-3">
+								<span className="text-sm font-medium text-gray-300">User Growth</span>
+								<span className="text-sm font-semibold text-white">{stats.totalUsers} / 1,000</span>
+							</div>
+							<div className="w-full bg-gray-700/30 rounded-full h-2">
+								<div
+									className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full transition-all duration-500"
+									style={{ width: `${Math.min((stats.totalUsers / 1000) * 100, 100)}%` }}
+								/>
+							</div>
+							<p className="text-xs text-gray-500 mt-2">
+								{((stats.totalUsers / 1000) * 100).toFixed(1)}% of user target
+							</p>
+						</div>
+						<div>
+							<div className="flex items-center justify-between mb-3">
+								<span className="text-sm font-medium text-gray-300">Content Library</span>
+								<span className="text-sm font-semibold text-white">
+									{(stats.totalSongs || 0) + (stats.totalAlbums || 0)} items
+								</span>
+							</div>
+							<div className="grid grid-cols-2 gap-3">
+								<div className="bg-black/30 rounded-lg p-3 border border-gray-700/20">
+									<div className="flex items-center gap-2 mb-2">
+										<Music size={14} className="text-reggae-green" />
+										<span className="text-xs text-gray-400">Songs</span>
+									</div>
+									<p className="text-lg font-bold text-white">{stats.totalSongs || 0}</p>
+								</div>
+								<div className="bg-black/30 rounded-lg p-3 border border-gray-700/20">
+									<div className="flex items-center gap-2 mb-2">
+										<Disc size={14} className="text-purple-400" />
+										<span className="text-xs text-gray-400">Albums</span>
+									</div>
+									<p className="text-lg font-bold text-white">{stats.totalAlbums || 0}</p>
+								</div>
+							</div>
+						</div>
+						<div className="pt-4 border-t border-gray-700/30">
+							<h4 className="text-sm font-semibold text-gray-300 mb-4">Quick Actions</h4>
+							<div className="flex gap-3 flex-wrap">
+								<motion.button
+									className="w-full flex items-center gap-2 p-2 bg-reggae-green/10 border border-reggae-green/20 rounded-lg text-reggae-green hover:bg-reggae-green/20 transition-all duration-300 text-sm font-medium"
+									whileHover={{ scale: 1.02 }}
+									whileTap={{ scale: 0.98 }}
+								>
+									<Upload size={14} />
+									Upload Content
+								</motion.button>
+								<motion.button
+									className="w-full flex items-center gap-2 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-400 hover:bg-purple-500/20 transition-all duration-300 text-sm font-medium"
+									whileHover={{ scale: 1.02 }}
+									whileTap={{ scale: 0.98 }}
+								>
+									<Album size={14} />
+									Manage Content
+								</motion.button>
+							</div>
+						</div>
+					</div>
+				</motion.div>
+			</div>
+
+			{/* Platform Status */}
+			<motion.div
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ delay: 0.9 }}
+				className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+			>
+				<h3 className="text-xl font-bold text-white mb-6">Platform Status</h3>
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+					<div className="text-center">
+						<div className="w-14 h-14 mx-auto mb-3 bg-emerald-500/10 rounded-full flex items-center justify-center">
+							<div className="w-6 h-6 bg-emerald-500 rounded-full animate-pulse" />
+						</div>
+						<p className="text-sm text-gray-400 mb-1">Server Status</p>
+						<p className="font-semibold text-emerald-400">Online</p>
+					</div>
+					<div className="text-center">
+						<div className="w-14 h-14 mx-auto mb-3 bg-blue-500/10 rounded-full flex items-center justify-center">
+							<TrendingUp className="w-6 h-6 text-blue-400" />
+						</div>
+						<p className="text-sm text-gray-400 mb-1">Response Time</p>
+						<p className="font-semibold text-white">~120ms</p>
+					</div>
+					<div className="text-center">
+						<div className="w-14 h-14 mx-auto mb-3 bg-reggae-green/10 rounded-full flex items-center justify-center">
+							<ShoppingBag className="w-6 h-6 text-reggae-green" />
+						</div>
+						<p className="text-sm text-gray-400 mb-1">Daily Activity</p>
+						<p className="font-semibold text-white">{stats.recentSales || 0}</p>
+					</div>
+					<div className="text-center">
+						<div className="w-14 h-14 mx-auto mb-3 bg-purple-500/10 rounded-full flex items-center justify-center">
+							<Users className="w-6 h-6 text-purple-400" />
+						</div>
+						<p className="text-sm text-gray-400 mb-1">Active Users</p>
+						<p className="font-semibold text-white">{stats.activeSessions || 0}</p>
+					</div>
+				</div>
+			</motion.div>
+		</div>
+	);
 }
-
-const AdminDashboard: React.FC = () => {
-  const { user, isLoaded } = useUser();
-  const [state, setState] = useState<AdminDashboardState>({
-    loading: true,
-    error: null,
-    activeTab: 'overview',
-    stats: {
-      totalSongs: 0,
-      totalAlbums: 0,
-      totalUsers: 0,
-      totalRevenue: 0,
-      recentSales: 0,
-      monthlyGrowth: 0,
-    },
-    recentActivity: [],
-  });
-
-  // Check if user is admin
-  const isAdmin = user?.publicMetadata?.role === 'admin';
-
-  // Fetch admin dashboard data
-  const fetchDashboardData = async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
-
-    try {
-      const response = await fetch('/api/admin/dashboard');
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch dashboard data');
-      }
-
-      setState(prev => ({
-        ...prev,
-        stats: result.data.stats,
-        recentActivity: result.data.recentActivity,
-        loading: false,
-      }));
-
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'An error occurred',
-        loading: false,
-      }));
-    }
-  };
-
-  useEffect(() => {
-    if (isLoaded && isAdmin) {
-      fetchDashboardData();
-    }
-  }, [isLoaded, isAdmin]);
-
-  // Navigation tabs
-  const tabs = [
-    { key: 'overview', label: 'Overview', icon: <BarChart3 size={20} /> },
-    { key: 'upload', label: 'Upload', icon: <Upload size={20} /> },
-    { key: 'content', label: 'Content', icon: <Music size={20} /> },
-    { key: 'users', label: 'Users', icon: <Users size={20} /> },
-    { key: 'analytics', label: 'Analytics', icon: <TrendingUp size={20} /> },
-  ];
-
-  // Format currency
-  const formatCurrency = (amount: number): string => {
-    return `₦${amount.toLocaleString()}`;
-  };
-
-  // Format percentage
-  const formatPercentage = (value: number): string => {
-    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
-  };
-
-  const fadeInVariants = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-  };
-
-  const staggerContainer = {
-    animate: {
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  if (!isLoaded) {
-    return <LoadingSpinner />;
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Please sign in to access admin dashboard</h2>
-          <button className="bg-reggae-green text-white px-6 py-3 rounded-full font-semibold">
-            Sign In
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Settings className="text-red-500" size={32} />
-          </div>
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-gray-600 mb-6">You don't have permission to access the admin dashboard.</p>
-          <button 
-            onClick={() => window.location.href = '/'}
-            className="bg-reggae-green text-white px-6 py-3 rounded-full font-semibold"
-          >
-            Return Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <motion.div
-          initial="initial"
-          animate="animate"
-          variants={fadeInVariants}
-          className="flex flex-col lg:flex-row lg:items-center justify-between mb-8"
-        >
-          <div>
-            <h1 className="text-4xl md:text-5xl font-bold font-serif text-reggae-dark mb-2">
-              Admin Dashboard
-            </h1>
-            <p className="text-xl text-gray-600">
-              Manage your music platform and monitor performance
-            </p>
-          </div>
-          
-          <div className="mt-4 lg:mt-0 flex gap-3">
-            <button className="flex items-center gap-2 bg-reggae-green text-white px-4 py-2 rounded-full font-semibold hover:bg-green-600 transition-colors">
-              <Plus size={18} />
-              Quick Upload
-            </button>
-            <button className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-full font-semibold border hover:bg-gray-50 transition-colors">
-              <Download size={18} />
-              Export Data
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Navigation Tabs */}
-        <motion.div
-          variants={fadeInVariants}
-          className="bg-white rounded-2xl shadow-lg p-2 mb-8"
-        >
-          <div className="flex gap-2 overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setState(prev => ({ ...prev, activeTab: tab.key as any }))}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${
-                  state.activeTab === tab.key
-                    ? 'bg-reggae-green text-white shadow-md'
-                    : 'text-gray-600 hover:text-reggae-green hover:bg-gray-50'
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Tab Content */}
-        <motion.div
-          key={state.activeTab}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {state.activeTab === 'overview' && (
-            <div className="space-y-8">
-              {/* Stats Cards */}
-              {state.loading ? (
-                <LoadingSpinner />
-              ) : state.error ? (
-                <ErrorMessage message={state.error} onRetry={fetchDashboardData} />
-              ) : (
-                <motion.div
-                  variants={staggerContainer}
-                  initial="initial"
-                  animate="animate"
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                >
-                  {[
-                    {
-                      title: 'Total Revenue',
-                      value: formatCurrency(state.stats.totalRevenue),
-                      change: formatPercentage(state.stats.monthlyGrowth),
-                      icon: <DollarSign size={32} />,
-                      color: 'bg-green-500',
-                      positive: state.stats.monthlyGrowth >= 0
-                    },
-                    {
-                      title: 'Total Users',
-                      value: state.stats.totalUsers.toLocaleString(),
-                      change: '+12% this month',
-                      icon: <Users size={32} />,
-                      color: 'bg-blue-500',
-                      positive: true
-                    },
-                    {
-                      title: 'Songs Published',
-                      value: state.stats.totalSongs,
-                      change: '+3 this week',
-                      icon: <Music size={32} />,
-                      color: 'bg-reggae-green',
-                      positive: true
-                    },
-                    {
-                      title: 'Albums Published',
-                      value: state.stats.totalAlbums,
-                      change: '+1 this month',
-                      icon: <AlbumIcon size={32} />,
-                      color: 'bg-reggae-yellow',
-                      positive: true
-                    },
-                    {
-                      title: 'Recent Sales',
-                      value: state.stats.recentSales,
-                      change: 'Last 7 days',
-                      icon: <TrendingUp size={32} />,
-                      color: 'bg-purple-500',
-                      positive: true
-                    },
-                    {
-                      title: 'Active Sessions',
-                      value: '24',
-                      change: 'Currently online',
-                      icon: <Eye size={32} />,
-                      color: 'bg-orange-500',
-                      positive: true
-                    },
-                  ].map((stat, index) => (
-                    <motion.div
-                      key={index}
-                      variants={fadeInVariants}
-                      className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center text-white`}>
-                          {stat.icon}
-                        </div>
-                        <div className={`text-sm font-medium ${stat.positive ? 'text-green-600' : 'text-red-600'}`}>
-                          {stat.change}
-                        </div>
-                      </div>
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {stat.value}
-                      </div>
-                      <div className="text-gray-600 font-medium">
-                        {stat.title}
-                      </div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
-
-              {/* Recent Activity */}
-              <motion.div
-                variants={fadeInVariants}
-                className="bg-white rounded-2xl shadow-lg p-6"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-900">Recent Activity</h3>
-                  <button className="text-reggae-green hover:text-green-600 font-medium">
-                    View All
-                  </button>
-                </div>
-                
-                <div className="space-y-4">
-                  {state.recentActivity.map((activity, index) => (
-                    <div key={activity.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        activity.type === 'purchase' ? 'bg-green-100 text-green-600' :
-                        activity.type === 'upload' ? 'bg-blue-100 text-blue-600' :
-                        'bg-purple-100 text-purple-600'
-                      }`}>
-                        {activity.type === 'purchase' ? <DollarSign size={18} /> :
-                         activity.type === 'upload' ? <Upload size={18} /> :
-                         <Users size={18} />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{activity.description}</p>
-                        <p className="text-sm text-gray-500">{activity.timestamp}</p>
-                      </div>
-                      {activity.amount && (
-                        <div className="font-bold text-green-600">
-                          {formatCurrency(activity.amount)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            </div>
-          )}
-
-          {state.activeTab === 'upload' && <AdminUploadForm />}
-          {state.activeTab === 'content' && <AdminContentManagement />}
-          {state.activeTab === 'users' && <AdminUserManagement />}
-          {state.activeTab === 'analytics' && <AdminAnalytics />}
-        </motion.div>
-      </div>
-    </div>
-  );
-};
-
-export default AdminDashboard;

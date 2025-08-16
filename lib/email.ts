@@ -1,5 +1,4 @@
 import nodemailer from 'nodemailer';
-import { S3Service } from './s3';
 
 // Create reusable transporter object using SMTP transport
 const transporter = nodemailer.createTransport({

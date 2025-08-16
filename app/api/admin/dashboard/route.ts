@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/mongodb";
-import { Song, Album, UserProfile } from "@/lib/models";
+import { Song, Album, UserProfile, Purchase } from "@/lib/models";
 
 // GET /api/admin/dashboard - Get admin dashboard data
 export async function GET(request: NextRequest) {
@@ -37,41 +37,47 @@ export async function GET(request: NextRequest) {
 			albumsLastMonth,
 			recentSongs,
 			recentAlbums,
-			recentUsers
+			recentUsers,
 		] = await Promise.all([
 			Song.countDocuments(),
 			Album.countDocuments(),
 			UserProfile.countDocuments(),
 			Song.countDocuments({ createdAt: { $gte: startOfMonth } }),
-			Song.countDocuments({ 
-				createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } 
+			Song.countDocuments({
+				createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
 			}),
 			Album.countDocuments({ createdAt: { $gte: startOfMonth } }),
-			Album.countDocuments({ 
-				createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } 
+			Album.countDocuments({
+				createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
 			}),
 			Song.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
 			Album.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
-			UserProfile.countDocuments({ createdAt: { $gte: sevenDaysAgo } })
+			UserProfile.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
 		]);
 
 		// Calculate revenue (assuming purchases are tracked in a Purchase model)
 		// For now, we'll use mock data or calculate based on song prices
-		const songs = await Song.find({}, 'price');
-		const albums = await Album.find({}, 'price');
-		
+		const songs = await Song.find({}, "price");
+		const albums = await Album.find({}, "price");
+
 		const totalSongValue = songs.reduce((sum, song) => sum + (song.price || 0), 0);
 		const totalAlbumValue = albums.reduce((sum, album) => sum + (album.price || 0), 0);
 		const totalRevenue = totalSongValue + totalAlbumValue;
 
 		// Calculate growth percentages
-		const songGrowth = songsLastMonth > 0 
-			? ((songsThisMonth - songsLastMonth) / songsLastMonth) * 100 
-			: songsThisMonth > 0 ? 100 : 0;
-		
-		const albumGrowth = albumsLastMonth > 0 
-			? ((albumsThisMonth - albumsLastMonth) / albumsLastMonth) * 100 
-			: albumsThisMonth > 0 ? 100 : 0;
+		const songGrowth =
+			songsLastMonth > 0
+				? ((songsThisMonth - songsLastMonth) / songsLastMonth) * 100
+				: songsThisMonth > 0
+				? 100
+				: 0;
+
+		const albumGrowth =
+			albumsLastMonth > 0
+				? ((albumsThisMonth - albumsLastMonth) / albumsLastMonth) * 100
+				: albumsThisMonth > 0
+				? 100
+				: 0;
 
 		// Mock monthly growth for revenue (you can replace this with actual purchase data)
 		const monthlyGrowth = Math.random() * 20 - 5; // Random between -5% and 15%
@@ -81,16 +87,15 @@ export async function GET(request: NextRequest) {
 
 		// Add recent song uploads
 		const recentSongUploads = await Song.find({
-			createdAt: { $gte: sevenDaysAgo }
+			createdAt: { $gte: sevenDaysAgo },
 		})
-		.sort({ createdAt: -1 })
-		.limit(5)
-		.select('title artist createdAt');
+			.sort({ createdAt: -1 })
+			.select("title artist createdAt");
 
-		recentSongUploads.forEach(song => {
+		recentSongUploads.forEach((song) => {
 			recentActivity.push({
 				id: song._id.toString(),
-				type: 'upload',
+				type: "upload",
 				description: `New song uploaded: "${song.title}" by ${song.artist}`,
 				timestamp: formatRelativeTime(song.createdAt),
 			});
@@ -98,16 +103,15 @@ export async function GET(request: NextRequest) {
 
 		// Add recent album uploads
 		const recentAlbumUploads = await Album.find({
-			createdAt: { $gte: sevenDaysAgo }
+			createdAt: { $gte: sevenDaysAgo },
 		})
-		.sort({ createdAt: -1 })
-		.limit(3)
-		.select('title artist createdAt');
+			.sort({ createdAt: -1 })
+			.select("title artist createdAt");
 
-		recentAlbumUploads.forEach(album => {
+		recentAlbumUploads.forEach((album) => {
 			recentActivity.push({
 				id: album._id.toString(),
-				type: 'upload',
+				type: "upload",
 				description: `New album uploaded: "${album.title}" by ${album.artist}`,
 				timestamp: formatRelativeTime(album.createdAt),
 			});
@@ -115,40 +119,57 @@ export async function GET(request: NextRequest) {
 
 		// Add recent user signups
 		const recentUserSignups = await UserProfile.find({
-			createdAt: { $gte: sevenDaysAgo }
+			createdAt: { $gte: sevenDaysAgo },
 		})
-		.sort({ createdAt: -1 })
-		.limit(5)
-		.select('firstName lastName createdAt');
+			.sort({ createdAt: -1 })
+			.select("firstName lastName createdAt");
 
-		recentUserSignups.forEach(user => {
+		recentUserSignups.forEach((user) => {
 			recentActivity.push({
 				id: user._id.toString(),
-				type: 'user_signup',
+				type: "user_signup",
 				description: `New user registered: ${user.firstName} ${user.lastName}`,
 				timestamp: formatRelativeTime(user.createdAt),
 			});
 		});
 
-		// Mock some recent purchases (replace with actual purchase data)
-		const mockPurchases = [
-			{
-				id: 'purchase_1',
-				type: 'purchase',
-				description: 'Song purchased: "One Love" by Bob Marley',
-				timestamp: '2 hours ago',
-				amount: 500,
-			},
-			{
-				id: 'purchase_2',
-				type: 'purchase',
-				description: 'Album purchased: "Legend" by Bob Marley',
-				timestamp: '5 hours ago',
-				amount: 2500,
-			},
-		];
+		// Get recent purchases and add to activity
+		const recentPurchases = (await Purchase.find()
+			.sort({ purchaseDate: -1 })
+			.select("purchaseDate amount itemId itemType status")
+      .lean()) as any;
 
-		recentActivity.push(...mockPurchases);
+		// Process each purchase to get item details
+		for (const purchase of recentPurchases) {
+			let itemDetails = { title: "Unknown Item", artist: "Unknown Artist" };
+
+			try {
+				if (purchase.itemType === "song") {
+					const song = (await Song.findById(purchase.itemId).select("title artist").lean()) as any;
+					if (song) {
+						itemDetails = { title: song.title, artist: song.artist };
+					}
+				} else if (purchase.itemType === "album") {
+					const album = (await Album.findById(purchase.itemId).select("title artist").lean()) as any;
+					if (album) {
+						itemDetails = { title: album.title, artist: album.artist };
+					}
+				}
+			} catch (error) {
+				console.error(`Error fetching ${purchase.itemType} details:`, error);
+			}
+
+			recentActivity.push({
+				id: purchase._id.toString(),
+				type: "purchase",
+				description: `${purchase.itemType === "song" ? "Song" : "Album"} purchased: "${
+					itemDetails.title
+				}" by ${itemDetails.artist}`,
+				timestamp: formatRelativeTime(purchase.purchaseDate),
+        amount: purchase.amount,
+        status: purchase.status,
+			});
+		}
 
 		// Sort activity by timestamp (most recent first)
 		recentActivity.sort((a, b) => {
@@ -171,7 +192,7 @@ export async function GET(request: NextRequest) {
 			success: true,
 			data: {
 				stats,
-				recentActivity: recentActivity.slice(0, 10), // Limit to 10 most recent
+				recentActivity,
 				additionalMetrics: {
 					songsThisMonth,
 					songsLastMonth,
@@ -185,13 +206,9 @@ export async function GET(request: NextRequest) {
 				},
 			},
 		});
-
 	} catch (error) {
 		console.error("Error fetching dashboard data:", error);
-		return NextResponse.json(
-			{ success: false, error: "Failed to fetch dashboard data" },
-			{ status: 500 }
-		);
+		return NextResponse.json({ success: false, error: "Failed to fetch dashboard data" }, { status: 500 });
 	}
 }
 
@@ -204,16 +221,16 @@ function formatRelativeTime(date: Date): string {
 		return `${diffInSeconds} seconds ago`;
 	} else if (diffInSeconds < 3600) {
 		const minutes = Math.floor(diffInSeconds / 60);
-		return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+		return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
 	} else if (diffInSeconds < 86400) {
 		const hours = Math.floor(diffInSeconds / 3600);
-		return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+		return `${hours} hour${hours > 1 ? "s" : ""} ago`;
 	} else if (diffInSeconds < 2592000) {
 		const days = Math.floor(diffInSeconds / 86400);
-		return `${days} day${days > 1 ? 's' : ''} ago`;
+		return `${days} day${days > 1 ? "s" : ""} ago`;
 	} else {
 		const months = Math.floor(diffInSeconds / 2592000);
-		return `${months} month${months > 1 ? 's' : ''} ago`;
+		return `${months} month${months > 1 ? "s" : ""} ago`;
 	}
 }
 
@@ -236,28 +253,28 @@ export async function POST(request: NextRequest) {
 		const { action, data } = await request.json();
 
 		switch (action) {
-			case 'update_featured':
+			case "update_featured":
 				// Update featured status for songs/albums
 				const { type, itemId, featured } = data;
-				
-				if (type === 'song') {
+
+				if (type === "song") {
 					await Song.findByIdAndUpdate(itemId, { featured, updatedAt: new Date() });
-				} else if (type === 'album') {
+				} else if (type === "album") {
 					await Album.findByIdAndUpdate(itemId, { featured, updatedAt: new Date() });
 				}
-				
+
 				return NextResponse.json({
 					success: true,
 					message: `${type} featured status updated successfully`,
 				});
 
-			case 'delete_content':
+			case "delete_content":
 				// Delete content (songs/albums)
 				const { type: deleteType, itemId: deleteId } = data;
-				
-				if (deleteType === 'song') {
+
+				if (deleteType === "song") {
 					await Song.findByIdAndDelete(deleteId);
-				} else if (deleteType === 'album') {
+				} else if (deleteType === "album") {
 					// Also delete associated songs
 					const album = await Album.findById(deleteId);
 					if (album) {
@@ -265,24 +282,17 @@ export async function POST(request: NextRequest) {
 						await Album.findByIdAndDelete(deleteId);
 					}
 				}
-				
+
 				return NextResponse.json({
 					success: true,
 					message: `${deleteType} deleted successfully`,
 				});
 
 			default:
-				return NextResponse.json(
-					{ success: false, error: "Invalid action" },
-					{ status: 400 }
-				);
+				return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
 		}
-
 	} catch (error) {
 		console.error("Error in dashboard POST:", error);
-		return NextResponse.json(
-			{ success: false, error: "Operation failed" },
-			{ status: 500 }
-		);
+		return NextResponse.json({ success: false, error: "Operation failed" }, { status: 500 });
 	}
 }

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Download, Play, Music, Calendar } from "lucide-react";
 import Image from "next/image";
 import { ISong, IAlbum, IPurchase } from "@/lib/models";
-import { useAudio } from "@/provider/AudioProvider";
+import { useAudio } from "@/context/AudioProvider";
 
 interface PurchaseItemCardProps {
 	purchase: IPurchase & { item: ISong | IAlbum };

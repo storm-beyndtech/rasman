@@ -26,8 +26,8 @@ export default function AdminDashboard() {
 
 	if (!isLoaded) {
 		return (
-			<div className="flex items-center justify-center py-20">
-				<Loader2 className="w-8 h-8 text-reggae-green animate-spin mx-auto mb-4" />
+			<div className="flex items-center justify-center py-20 gap-2">
+				<Loader2 className="w-8 h-8 text-reggae-green animate-spin" />
 				<p className="text-gray-400">Loading user...</p>
 			</div>
 		);
@@ -64,9 +64,9 @@ export default function AdminDashboard() {
 
 	if (isLoading) {
 		return (
-			<div className="flex items-center justify-center py-20">
-				<Loader2 className="w-8 h-8 text-reggae-green animate-spin mx-auto mb-4" />
-				<p className="text-gray-400">Loading dashboard...</p>
+			<div className="flex items-center justify-center gap-2 py-20">
+				<Loader2 className="w-8 h-8 text-reggae-green animate-spin" />
+				<p className="text-gray-400">Loading Stats...</p>
 			</div>
 		);
 	}
@@ -229,14 +229,14 @@ export default function AdminDashboard() {
 										<div>
 											<div
 												className={`text-sm font-semibold ${
-													activity.status === "pending" ? "text-orange-300" : "text-green-400"
+													activity.status === "pending" ? "text-orange-300" : "text-green-300"
 												}`}
 											>
 												{formatCurrency(activity.amount)}
 											</div>
 											<div
-												className={`text-[9px] font-medium ${
-													activity.status === "pending" ? "text-orange-400" : "text-emerald-400"
+												className={`text-[10px] font-medium ${
+													activity.status === "pending" ? "text-gray-400" : "text-gray-400"
 												}`}
 											>
 												{activity.status}
@@ -327,21 +327,21 @@ export default function AdminDashboard() {
 						</div>
 						<div className="pt-4 border-t border-gray-700/30">
 							<h4 className="text-sm font-semibold text-gray-300 mb-4">Quick Actions</h4>
-							<div className="flex gap-3 flex-wrap">
+							<div className="grid grid-cols-2 sm:gap-3 gap-2 text-nowrap">
 								<motion.button
-									className="w-full flex items-center gap-2 p-2 bg-reggae-green/10 border border-reggae-green/20 rounded-lg text-reggae-green hover:bg-reggae-green/20 transition-all duration-300 text-sm font-medium"
+									className="w-full flex items-center gap-2 p-2 bg-reggae-green/10 border border-reggae-green/20 rounded-lg text-reggae-green hover:bg-reggae-green/20 transition-all duration-300 sm:text-sm text-xs font-medium"
 									whileHover={{ scale: 1.02 }}
 									whileTap={{ scale: 0.98 }}
 								>
-									<Upload size={14} />
+									<Upload size={14} className="flex-shrink-0" />
 									Upload Content
 								</motion.button>
 								<motion.button
-									className="w-full flex items-center gap-2 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-400 hover:bg-purple-500/20 transition-all duration-300 text-sm font-medium"
+									className="w-full flex items-center gap-2 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-400 hover:bg-purple-500/20 transition-all duration-300 sm:text-sm text-xs font-medium"
 									whileHover={{ scale: 1.02 }}
 									whileTap={{ scale: 0.98 }}
 								>
-									<Album size={14} />
+									<Album size={14} className="flex-shrink-0" />
 									Manage Content
 								</motion.button>
 							</div>

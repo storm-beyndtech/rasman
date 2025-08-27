@@ -59,11 +59,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 					className="mb-12"
 				>
 					<div className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-2">
-						<div className="grid sm:grid-cols-4 grid-cols-2 p-3 gap-3">
+						<div className="max-w-4xl mx-auto grid sm:grid-cols-4 grid-cols-2 p-3 gap-3 items-center">
 							{tabs.map((tab, index) => (
 								<Link key={tab.key} href={tab.href}>
 									<motion.div
-										className={`flex items-center gap-3 px-6 py-2 border-[1.5px] rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap cursor-pointer ${
+										className={`flex items-center justify-center gap-3 px-6 py-2 border-[1.5px] rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap cursor-pointer ${
 											isActiveTab(tab.href)
 												? "bg-purple-500/10 text-white border-purple-500"
 												: "text-gray-600 hover:text-white hover:bg-black/30 border-transparent"

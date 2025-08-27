@@ -11,7 +11,7 @@ interface DownloadRouteParams {
 // POST /api/download/[itemId] - Generate secure download links
 export async function POST(request: NextRequest, { params }: DownloadRouteParams) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		const { itemId } = await params;
 
 		if (!userId) {
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest, { params }: DownloadRouteParams
 // GET /api/download/[itemId] - Get download history for an item
 export async function GET(request: NextRequest, { params }: DownloadRouteParams) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		const { itemId } = await params;
 
 		if (!userId) {
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest, { params }: DownloadRouteParams)
 // DELETE /api/download/[itemId] - Revoke download access (Admin only)
 export async function DELETE(request: NextRequest, { params }: DownloadRouteParams) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		const { itemId } = await params;
 
 		if (!userId) {

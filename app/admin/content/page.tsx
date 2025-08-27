@@ -1,5 +1,4 @@
-"use client";
-
+"use client"
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,38 +10,16 @@ import {
 	Star,
 	StarOff,
 	Loader2,
-	X,
 	Save,
 	DollarSign,
 	Clock,
 	Calendar,
 	Eye,
+	Plus,
+	FolderPlus,
+	Album,
 } from "lucide-react";
-
-interface ISong {
-	_id: string;
-	title: string;
-	artist: string;
-	genre: string;
-	duration: number;
-	price: number;
-	featured: boolean;
-	coverArtUrl: string;
-	createdAt: Date;
-}
-
-interface IAlbum {
-	_id: string;
-	title: string;
-	artist: string;
-	price: number;
-	description?: string;
-	featured: boolean;
-	coverArtUrl: string;
-	songIds: string[];
-	releaseDate: Date;
-	createdAt: Date;
-}
+import { IAlbum, ISong } from "@/lib/models";
 
 interface EditFormData {
 	title: string;
@@ -51,6 +28,16 @@ interface EditFormData {
 	price: number;
 	featured: boolean;
 	description?: string;
+}
+
+interface AlbumFormData {
+	title: string;
+	artist: string;
+	price: number;
+	description: string;
+	featured: boolean;
+	isNewAlbum: boolean;
+	existingAlbumId?: string;
 }
 
 interface ContentState {
@@ -63,7 +50,10 @@ interface ContentState {
 	deletingItem: ISong | IAlbum | null;
 	showEditModal: boolean;
 	showDeleteModal: boolean;
+	showAlbumModal: boolean;
 	editFormData: EditFormData;
+	albumFormData: AlbumFormData;
+	selectedSongs: Set<string>;
 	saving: boolean;
 	actionLoading: boolean;
 }
@@ -79,6 +69,7 @@ export default function AdminContentManagement() {
 		deletingItem: null,
 		showEditModal: false,
 		showDeleteModal: false,
+		showAlbumModal: false,
 		editFormData: {
 			title: "",
 			artist: "",
@@ -87,6 +78,16 @@ export default function AdminContentManagement() {
 			featured: false,
 			description: "",
 		},
+		albumFormData: {
+			title: "",
+			artist: "",
+			price: 0,
+			description: "",
+			featured: false,
+			isNewAlbum: true,
+			existingAlbumId: "",
+		},
+		selectedSongs: new Set(),
 		saving: false,
 		actionLoading: false,
 	});
@@ -105,7 +106,12 @@ export default function AdminContentManagement() {
 			if (response.ok) {
 				const data = await response.json();
 				if (state.activeTab === "songs") {
-					setState((prev) => ({ ...prev, songs: data.data?.songs || [], loading: false }));
+					setState((prev) => ({
+						...prev,
+						songs: data.data?.songs || [],
+						loading: false,
+						selectedSongs: new Set(), // Reset selection when switching tabs
+					}));
 				} else {
 					setState((prev) => ({ ...prev, albums: data.data?.albums || [], loading: false }));
 				}
@@ -113,6 +119,105 @@ export default function AdminContentManagement() {
 		} catch (error) {
 			console.error("Error fetching content:", error);
 			setState((prev) => ({ ...prev, loading: false }));
+		}
+	};
+
+	const toggleSongSelection = (songId: string) => {
+		setState((prev) => {
+			const newSelected = new Set(prev.selectedSongs);
+			if (newSelected.has(songId)) {
+				newSelected.delete(songId);
+			} else {
+				newSelected.add(songId);
+			}
+			return { ...prev, selectedSongs: newSelected };
+		});
+	};
+
+	const openAlbumModal = () => {
+		if (state.selectedSongs.size === 0) return;
+
+		// Set default artist from selected songs
+		const selectedSong = state.songs.find((song) => state.selectedSongs.has(song._id));
+
+		setState((prev) => ({
+			...prev,
+			showAlbumModal: true,
+			albumFormData: {
+				title: "",
+				artist: selectedSong?.artist || "",
+				price: 0,
+				description: "",
+				featured: false,
+				isNewAlbum: true,
+				existingAlbumId: "",
+			},
+		}));
+	};
+
+	const handleCreateAlbum = async () => {
+		if (!state.albumFormData.title || state.selectedSongs.size === 0) return;
+
+		setState((prev) => ({ ...prev, saving: true }));
+
+		try {
+			if (state.albumFormData.isNewAlbum) {
+				// Create new album
+				const albumData = {
+					title: state.albumFormData.title,
+					artist: state.albumFormData.artist,
+					price: state.albumFormData.price,
+					description: state.albumFormData.description,
+					featured: state.albumFormData.featured,
+					songIds: Array.from(state.selectedSongs),
+				};
+
+				const response = await fetch("/api/albums", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(albumData),
+				});
+
+				if (!response.ok) {
+					throw new Error("Failed to create album");
+				}
+			} else {
+				// Add songs to existing album
+				const albumResponse = await fetch(`/api/albums?id=${state.albumFormData.existingAlbumId}`);
+				const albumData = await albumResponse.json();
+
+				if (!albumResponse.ok) {
+					throw new Error("Failed to fetch album");
+				}
+
+				const existingAlbum = albumData.data;
+				const updatedSongIds = [...existingAlbum.songIds, ...Array.from(state.selectedSongs)];
+
+				const updateResponse = await fetch("/api/albums", {
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						id: state.albumFormData.existingAlbumId,
+						songIds: updatedSongIds,
+					}),
+				});
+
+				if (!updateResponse.ok) {
+					throw new Error("Failed to update album");
+				}
+			}
+
+			setState((prev) => ({
+				...prev,
+				showAlbumModal: false,
+				saving: false,
+				selectedSongs: new Set(),
+			}));
+
+			await fetchContent();
+		} catch (error) {
+			console.error("Failed to create/update album:", error);
+			setState((prev) => ({ ...prev, saving: false }));
 		}
 	};
 
@@ -258,6 +363,24 @@ export default function AdminContentManagement() {
 				<div className="text-sm text-gray-400">
 					{state.activeTab === "songs" ? state.songs.length : state.albums.length} items
 				</div>
+
+				{/* Actions for selected songs */}
+				{state.activeTab === "songs" && state.selectedSongs.size > 0 && (
+					<div className="flex items-center gap-4">
+						<span className="text-sm text-gray-400">
+							{state.selectedSongs.size} song{state.selectedSongs.size > 1 ? "s" : ""} selected
+						</span>
+						<motion.button
+							onClick={openAlbumModal}
+							className="flex items-center gap-2 px-4 py-2 bg-reggae-green/80 text-white rounded-lg font-medium hover:bg-reggae-green transition-all duration-300 shadow-lg"
+							whileHover={{ scale: 1.02 }}
+							whileTap={{ scale: 0.98 }}
+						>
+							<FolderPlus size={16} />
+							Add to Album
+						</motion.button>
+					</div>
+				)}
 			</div>
 
 			{/* Search and Tabs */}
@@ -325,6 +448,25 @@ export default function AdminContentManagement() {
 						<table className="w-full">
 							<thead className="bg-black/30 border-b border-gray-700/30">
 								<tr>
+									{state.activeTab === "songs" && (
+										<th className="text-left px-6 py-4 font-semibold text-gray-300 w-12">
+											<input
+												type="checkbox"
+												className="w-4 h-4 text-reggae-green bg-black/30 border-gray-700/30 rounded focus:ring-reggae-green focus:ring-2"
+												checked={
+													state.selectedSongs.size === filteredItems().length && filteredItems().length > 0
+												}
+												onChange={(e) => {
+													setState((prev) => ({
+														...prev,
+														selectedSongs: e.target.checked
+															? new Set(filteredItems().map((item) => item._id))
+															: new Set(),
+													}));
+												}}
+											/>
+										</th>
+									)}
 									<th className="text-left px-6 py-4 font-semibold text-gray-300">Content</th>
 									<th className="text-left px-6 py-4 font-semibold text-gray-300">Details</th>
 									<th className="text-left px-6 py-4 font-semibold text-gray-300">Price</th>
@@ -342,8 +484,21 @@ export default function AdminContentManagement() {
 											initial={{ opacity: 0, y: 10 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: index * 0.05 }}
-											className="border-b border-gray-700/20 hover:bg-black/20 transition-colors duration-200"
+											className={`border-b border-gray-700/20 hover:bg-black/20 transition-colors duration-200 ${
+												isSong && state.selectedSongs.has(item._id) ? "bg-reggae-green/10" : ""
+											}`}
 										>
+											{state.activeTab === "songs" && (
+												<td className="px-6 py-4">
+													<input
+														type="checkbox"
+														className="w-4 h-4 text-reggae-green bg-black/30 border-gray-700/30 rounded focus:ring-reggae-green focus:ring-2"
+														checked={state.selectedSongs.has(item._id)}
+														onChange={() => toggleSongSelection(item._id)}
+													/>
+												</td>
+											)}
+
 											<td className="px-6 py-4">
 												<div className="flex items-center gap-4">
 													{/* Cover Art */}
@@ -489,6 +644,228 @@ export default function AdminContentManagement() {
 					</div>
 				</div>
 			)}
+
+			{/* Add to Album Modal */}
+			<AnimatePresence>
+				{state.showAlbumModal && (
+					<>
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+							onClick={() => setState((prev) => ({ ...prev, showAlbumModal: false }))}
+						/>
+						<motion.div
+							initial={{ opacity: 0, scale: 0.9, y: 20 }}
+							animate={{ opacity: 1, scale: 1, y: 0 }}
+							exit={{ opacity: 0, scale: 0.9, y: 20 }}
+							className="fixed inset-4 z-50 flex items-center justify-center"
+						>
+							<div className="w-full max-w-lg bg-black/90 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-8 max-h-[90vh] overflow-y-auto">
+								<div className="mb-6">
+									<h3 className="text-xl font-bold text-white mb-2">Add Songs to Album</h3>
+									<p className="text-gray-400">
+										Add {state.selectedSongs.size} selected song{state.selectedSongs.size > 1 ? "s" : ""} to
+										an album
+									</p>
+								</div>
+
+								{/* Album Type Toggle */}
+								<div className="mb-6">
+									<div className="flex gap-2 bg-black/30 backdrop-blur-sm rounded-xl p-1 border border-gray-700/30">
+										<button
+											onClick={() =>
+												setState((prev) => ({
+													...prev,
+													albumFormData: { ...prev.albumFormData, isNewAlbum: true },
+												}))
+											}
+											className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+												state.albumFormData.isNewAlbum
+													? "bg-reggae-green/70 text-white shadow-lg"
+													: "text-gray-300 hover:text-reggae-green hover:bg-black/30"
+											}`}
+										>
+											<Plus size={16} />
+											New Album
+										</button>
+										<button
+											onClick={() =>
+												setState((prev) => ({
+													...prev,
+													albumFormData: { ...prev.albumFormData, isNewAlbum: false },
+												}))
+											}
+											className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+												!state.albumFormData.isNewAlbum
+													? "bg-reggae-yellow/80 text-white shadow-lg"
+													: "text-gray-300 hover:text-reggae-yellow hover:bg-black/30"
+											}`}
+										>
+											<Album size={16} />
+											Existing Album
+										</button>
+									</div>
+								</div>
+
+								{state.albumFormData.isNewAlbum ? (
+									<div className="space-y-4">
+										{/* Album Title */}
+										<div>
+											<label className="block text-sm font-medium text-gray-300 mb-2">Album Title *</label>
+											<input
+												type="text"
+												value={state.albumFormData.title}
+												onChange={(e) =>
+													setState((prev) => ({
+														...prev,
+														albumFormData: { ...prev.albumFormData, title: e.target.value },
+													}))
+												}
+												className="w-full px-4 py-3 bg-black/30 border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white placeholder-gray-400"
+												placeholder="Enter album title"
+											/>
+										</div>
+
+										{/* Artist */}
+										<div>
+											<label className="block text-sm font-medium text-gray-300 mb-2">Artist</label>
+											<input
+												type="text"
+												value={state.albumFormData.artist}
+												onChange={(e) =>
+													setState((prev) => ({
+														...prev,
+														albumFormData: { ...prev.albumFormData, artist: e.target.value },
+													}))
+												}
+												className="w-full px-4 py-3 bg-black/30 border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white placeholder-gray-400"
+												placeholder="Enter artist name"
+											/>
+										</div>
+
+										{/* Description */}
+										<div>
+											<label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+											<textarea
+												value={state.albumFormData.description}
+												onChange={(e) =>
+													setState((prev) => ({
+														...prev,
+														albumFormData: { ...prev.albumFormData, description: e.target.value },
+													}))
+												}
+												className="w-full px-4 py-3 bg-black/30 border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white placeholder-gray-400 resize-none"
+												placeholder="Enter album description"
+												rows={3}
+											/>
+										</div>
+
+										{/* Price */}
+										<div>
+											<label className="block text-sm font-medium text-gray-300 mb-2">Album Price (₦)</label>
+											<input
+												type="number"
+												value={state.albumFormData.price}
+												onChange={(e) =>
+													setState((prev) => ({
+														...prev,
+														albumFormData: { ...prev.albumFormData, price: parseFloat(e.target.value) || 0 },
+													}))
+												}
+												className="w-full px-4 py-3 bg-black/30 border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white placeholder-gray-400"
+												placeholder="0"
+												min="0"
+											/>
+										</div>
+
+										{/* Featured Toggle */}
+										<div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-gray-700/30">
+											<div>
+												<h4 className="font-medium text-white">Featured Album</h4>
+												<p className="text-sm text-gray-400">Show this album prominently on the platform</p>
+											</div>
+											<label className="relative inline-flex items-center cursor-pointer">
+												<input
+													type="checkbox"
+													checked={state.albumFormData.featured}
+													onChange={(e) =>
+														setState((prev) => ({
+															...prev,
+															albumFormData: { ...prev.albumFormData, featured: e.target.checked },
+														}))
+													}
+													className="sr-only peer"
+												/>
+												<div className="w-11 h-6 bg-black/30 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-reggae-green/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-reggae-green border border-gray-600"></div>
+											</label>
+										</div>
+									</div>
+								) : (
+									<div>
+										<label className="block text-sm font-medium text-gray-300 mb-2">
+											Select Existing Album
+										</label>
+										<select
+											value={state.albumFormData.existingAlbumId}
+											onChange={(e) =>
+												setState((prev) => ({
+													...prev,
+													albumFormData: { ...prev.albumFormData, existingAlbumId: e.target.value },
+												}))
+											}
+											className="w-full px-4 py-3 bg-black/30 border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white"
+										>
+											<option value="">Choose an album...</option>
+											{state.albums.map((album) => (
+												<option key={album._id} value={album._id}>
+													{album.title} by {album.artist} ({album.songIds.length} tracks)
+												</option>
+											))}
+										</select>
+									</div>
+								)}
+
+								<div className="flex gap-4 mt-8">
+									<motion.button
+										onClick={() => setState((prev) => ({ ...prev, showAlbumModal: false }))}
+										disabled={state.saving}
+										className="flex-1 px-4 py-3 bg-black/30 border border-gray-700/30 text-white rounded-xl hover:bg-black/50 transition-colors duration-300 disabled:opacity-50"
+										whileHover={{ scale: state.saving ? 1 : 1.02 }}
+										whileTap={{ scale: state.saving ? 1 : 0.98 }}
+									>
+										Cancel
+									</motion.button>
+									<motion.button
+										onClick={handleCreateAlbum}
+										disabled={
+											state.saving ||
+											!state.albumFormData.title ||
+											(!state.albumFormData.isNewAlbum && !state.albumFormData.existingAlbumId)
+										}
+										className="flex-1 px-4 py-3 bg-reggae-green text-white rounded-xl hover:bg-green-600 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+										whileHover={{ scale: state.saving ? 1 : 1.02 }}
+										whileTap={{ scale: state.saving ? 1 : 0.98 }}
+									>
+										{state.saving ? (
+											<>
+												<Loader2 size={16} className="animate-spin" />
+												{state.albumFormData.isNewAlbum ? "Creating..." : "Adding..."}
+											</>
+										) : (
+											<>
+												<FolderPlus size={16} />
+												{state.albumFormData.isNewAlbum ? "Create Album" : "Add to Album"}
+											</>
+										)}
+									</motion.button>
+								</div>
+							</div>
+						</motion.div>
+					</>
+				)}
+			</AnimatePresence>
 
 			{/* Edit Modal */}
 			<AnimatePresence>

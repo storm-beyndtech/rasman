@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/mongodb";
 import { Album, Song, UserProfile } from "@/lib/models";
 import { albumSchema, albumUpdateSchema, albumFilterSchema } from "@/lib/validations";
@@ -91,19 +91,20 @@ export async function GET(request: NextRequest) {
 // POST /api/albums - Create new album (Admin only)
 export async function POST(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
 
-		await connectDB();
-
 		// Check if user is admin
-		const userProfile = await UserProfile.findOne({ clerkId: userId });
-		if (!userProfile || userProfile.role !== "admin") {
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
+		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
 
+		await connectDB();
 		const body = await request.json();
 
 		// Validate input
@@ -143,19 +144,19 @@ export async function POST(request: NextRequest) {
 // PUT /api/albums - Update album (Admin only)
 export async function PUT(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
 
-		await connectDB();
-
 		// Check if user is admin
-		const userProfile = await UserProfile.findOne({ clerkId: userId });
-		if (!userProfile || userProfile.role !== "admin") {
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
 
+		await connectDB();
 		const body = await request.json();
 
 		// Validate input
@@ -195,25 +196,28 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/albums - Delete album (Admin only)
 export async function DELETE(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
 
-		await connectDB();
-
+    
 		// Check if user is admin
-		const userProfile = await UserProfile.findOne({ clerkId: userId });
-		if (!userProfile || userProfile.role !== "admin") {
-			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+    
+		if (user.publicMetadata?.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
-
+    
 		const { searchParams } = new URL(request.url);
 		const albumId = searchParams.get("id");
-
+    
 		if (!albumId) {
-			return NextResponse.json({ success: false, error: "Album ID is required" }, { status: 400 });
-		}
+      return NextResponse.json({ success: false, error: "Album ID is required" }, { status: 400 });
+    }
+    
+    await connectDB();
 
 		// Find album to get file keys for S3 deletion
 		const album = await Album.findById(albumId).populate("songIds");

@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Music, Album as AlbumIcon, Calendar, TrendingUp, Loader2, RefreshCw } from "lucide-react";
 import { ISong, IAlbum, IPurchase } from "@/lib/models";
-import { useToast } from "@/provider/ToastProvider";
+import { useToast } from "@/context/ToastProvider";
 import StatsCard from "@/components/dashboard/StatsCard";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import DashboardEmptyState from "@/components/dashboard/DashboardEmptyState";

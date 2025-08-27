@@ -7,7 +7,7 @@ import { S3Service, isValidAudioFile, isValidImageFile, getContentType } from "@
 // POST /api/admin/upload - Handle file uploads (Admin only)
 export async function POST(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
 		await connectDB();
 
 		// Check if user is admin
-		const user = await clerkClient.users.getUser(userId);
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
 		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
@@ -25,6 +27,8 @@ export async function POST(request: NextRequest) {
 
 		if (uploadType === "song") {
 			return await handleSongUpload(formData, userId);
+		} else if (uploadType === "album-from-songs") {
+			return await handleAlbumFromSongs(formData, userId);
 		} else if (uploadType === "album") {
 			return await handleAlbumUpload(formData, userId);
 		} else {
@@ -61,8 +65,8 @@ async function handleSongUpload(formData: FormData, userId: string) {
 
 		if (!isValidImageFile(coverFile.name)) {
 			return NextResponse.json({ success: false, error: "Invalid image file type" }, { status: 400 });
-    }
-  
+		}
+
 		// Generate S3 keys
 		const audioFileKey = S3Service.generateAudioFileKey(audioFile.name, userId);
 		const coverFileKey = S3Service.generateCoverArtKey(coverFile.name, userId);
@@ -195,10 +199,10 @@ async function handleAlbumUpload(formData: FormData, userId: string) {
 			const song = new Song({
 				title: songData.title,
 				artist,
-				genre: "Reggae", // Default genre for album songs
+				genre: "Reggae",
 				duration: songData.duration,
 				price: songData.price,
-				featured: false, // Individual songs in album are not featured by default
+				featured: false,
 				fileKey: audioFileKey,
 				coverArtUrl: songCoverKey,
 				createdAt: new Date(),
@@ -247,53 +251,127 @@ async function handleAlbumUpload(formData: FormData, userId: string) {
 	}
 }
 
-// GET /api/admin/upload - Get upload presigned URLs (for direct S3 upload)
-export async function GET(request: NextRequest) {
+
+// Handle album upload from content management songs
+async function handleAlbumFromSongs(formData: FormData, userId: string) {
 	try {
-		const { userId } = auth();
-		if (!userId) {
-			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+		const title = formData.get("title") as string;
+		const artist = formData.get("artist") as string;
+		const price = parseFloat(formData.get("price") as string);
+		const description = formData.get("description") as string;
+		const featured = formData.get("featured") === "true";
+		const coverFile = formData.get("coverFile") as File;
+    
+		// Extract song IDs
+		const songIds: string[] = [];
+		let index = 0;
+		while (formData.get(`songIds[${index}]`)) {
+      songIds.push(formData.get(`songIds[${index}]`) as string);
+			index++;
 		}
-
-		await connectDB();
-
-		// Check if user is admin
-		const user = await clerkClient.users.getUser(userId);
-		if (user.publicMetadata?.role !== "admin") {
-			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
+    
+		if (!title || !coverFile || songIds.length === 0) {
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
 		}
-
-		const { searchParams } = new URL(request.url);
-		const fileType = searchParams.get("fileType");
-		const fileName = searchParams.get("fileName");
-
-		if (!fileType || !fileName) {
-			return NextResponse.json({ success: false, error: "File type and name are required" }, { status: 400 });
+    
+		// Validate cover file
+		if (!isValidImageFile(coverFile.name)) {
+      return NextResponse.json({ success: false, error: "Invalid cover image file type" }, { status: 400 });
 		}
-
-		// Generate appropriate file key
-		let fileKey: string;
-		if (fileType === "audio") {
-			fileKey = S3Service.generateAudioFileKey(fileName, userId);
-		} else if (fileType === "image") {
-			fileKey = S3Service.generateCoverArtKey(fileName, userId);
-		} else {
-			return NextResponse.json({ success: false, error: "Invalid file type" }, { status: 400 });
-		}
-
-		// Generate presigned URL for upload
-		const uploadUrl = await S3Service.getUploadUrl(fileKey, getContentType(fileName));
-
-		return NextResponse.json({
-			success: true,
-			data: {
-				uploadUrl,
-				fileKey,
-				expires: "1 hour",
-			},
+    
+		// Upload cover image to S3
+		const coverFileKey = S3Service.generateCoverArtKey(coverFile.name, userId);
+		const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
+		await S3Service.uploadFile(coverFileKey, coverBuffer, getContentType(coverFile.name));
+    
+		// Create album in database
+		const album = new Album({
+			title,
+			artist,
+			price,
+			description,
+			featured,
+			coverArtUrl: coverFileKey,
+			songIds,
+			releaseDate: new Date(),
+			createdAt: new Date(),
+			updatedAt: new Date(),
 		});
+    
+		await album.save();
+    
+		// Update songs to reference the album
+		await Song.updateMany({ _id: { $in: songIds } }, { albumId: album._id });
+    
+		return NextResponse.json(
+      {
+        success: true,
+				message: "Album created successfully",
+				data: {
+          albumId: album._id,
+					title: album.title,
+					artist: album.artist,
+					songsCount: songIds.length,
+				},
+			},
+			{ status: 201 },
+		);
 	} catch (error) {
-		console.error("Error generating upload URL:", error);
-		return NextResponse.json({ success: false, error: "Failed to generate upload URL" }, { status: 500 });
+    console.error("Error creating album from songs:", error);
+		return NextResponse.json({ success: false, error: "Failed to create album" }, { status: 500 });
 	}
+}
+
+
+// Get upload presigned URLs (for direct S3 upload)
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    await connectDB();
+
+    // Check if user is admin
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+
+    if (user.publicMetadata?.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const fileType = searchParams.get("fileType");
+    const fileName = searchParams.get("fileName");
+
+    if (!fileType || !fileName) {
+      return NextResponse.json({ success: false, error: "File type and name are required" }, { status: 400 });
+    }
+
+    // Generate appropriate file key
+    let fileKey: string;
+    if (fileType === "audio") {
+      fileKey = S3Service.generateAudioFileKey(fileName, userId);
+    } else if (fileType === "image") {
+      fileKey = S3Service.generateCoverArtKey(fileName, userId);
+    } else {
+      return NextResponse.json({ success: false, error: "Invalid file type" }, { status: 400 });
+    }
+
+    // Generate presigned URL for upload
+    const uploadUrl = await S3Service.getUploadUrl(fileKey, getContentType(fileName));
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        uploadUrl,
+        fileKey,
+        expires: "1 hour",
+      },
+    });
+  } catch (error) {
+    console.error("Error generating upload URL:", error);
+    return NextResponse.json({ success: false, error: "Failed to generate upload URL" }, { status: 500 });
+  }
 }

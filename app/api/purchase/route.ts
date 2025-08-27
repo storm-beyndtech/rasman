@@ -9,7 +9,7 @@ import { S3Service } from "@/lib/s3";
 // POST /api/purchase - Initialize purchase
 export async function POST(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
 		}
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
 // GET /api/purchase - Get user's purchases
 export async function GET(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
 		}
@@ -214,7 +214,7 @@ export async function GET(request: NextRequest) {
 // PUT /api/purchase - Verify purchase (called after payment)
 export async function PUT(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
 		}

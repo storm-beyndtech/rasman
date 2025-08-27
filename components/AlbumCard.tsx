@@ -6,8 +6,8 @@ import { Music, ShoppingCart, Lock, CheckCircle, Download } from "lucide-react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
-import { useAudio } from "@/provider/AudioProvider";
 import { IAlbum } from "@/lib/models";
+import { useAudio } from "@/provider/AudioProvider";
 
 interface AlbumCardProps {
 	album: IAlbum;

@@ -5,8 +5,8 @@ import { motion } from "framer-motion";
 import { Play, Pause, ShoppingCart, Lock, CheckCircle, Download } from "lucide-react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import Image from "next/image";
-import { useAudio } from "@/provider/AudioProvider";
 import { ISong } from "@/lib/models";
+import { useAudio } from "@/provider/AudioProvider";
 
 interface SongCardProps {
 	song: ISong;

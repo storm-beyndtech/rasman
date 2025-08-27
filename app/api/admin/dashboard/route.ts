@@ -6,7 +6,7 @@ import { Song, Album, UserProfile, Purchase } from "@/lib/models";
 // GET /api/admin/dashboard - Get admin dashboard data
 export async function GET(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
@@ -14,7 +14,9 @@ export async function GET(request: NextRequest) {
 		await connectDB();
 
 		// Check if user is admin
-		const user = await clerkClient.users.getUser(userId);
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
 		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
@@ -137,7 +139,7 @@ export async function GET(request: NextRequest) {
 		const recentPurchases = (await Purchase.find()
 			.sort({ purchaseDate: -1 })
 			.select("purchaseDate amount itemId itemType status")
-      .lean()) as any;
+			.lean()) as any;
 
 		// Process each purchase to get item details
 		for (const purchase of recentPurchases) {
@@ -166,8 +168,8 @@ export async function GET(request: NextRequest) {
 					itemDetails.title
 				}" by ${itemDetails.artist}`,
 				timestamp: formatRelativeTime(purchase.purchaseDate),
-        amount: purchase.amount,
-        status: purchase.status,
+				amount: purchase.amount,
+				status: purchase.status,
 			});
 		}
 
@@ -237,7 +239,7 @@ function formatRelativeTime(date: Date): string {
 // Optional: Add more specific endpoints for different dashboard sections
 export async function POST(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
@@ -245,7 +247,9 @@ export async function POST(request: NextRequest) {
 		await connectDB();
 
 		// Check if user is admin
-		const user = await clerkClient.users.getUser(userId);
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
 		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}

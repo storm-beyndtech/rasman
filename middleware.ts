@@ -4,10 +4,10 @@ import { NextResponse } from "next/server";
 
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
-const isPublicRoute = createRouteMatcher(["/", "/sign-in", "/sign-up"]);
+const isPublicRoute = createRouteMatcher(["/", "/sign-in", "/sign-up", "/bio", "/songs", "albums"]);
 
 export default clerkMiddleware(async (auth, req) => {
-	const { userId } = auth();
+	const { userId } = await auth();
 
 	// Allow public routes without auth
 	if (isPublicRoute(req)) {
@@ -16,16 +16,17 @@ export default clerkMiddleware(async (auth, req) => {
 
 	// Protect all other routes
 	if (!userId) {
-		return auth().redirectToSignIn({ returnBackUrl: req.url });
+		return NextResponse.next();
 	}
 
 	// Check admin role for admin routes
 	if (isAdminRoute(req)) {
 		try {
-			const user = await clerkClient.users.getUser(userId);
+			const client = await clerkClient();
+			const user = await client.users.getUser(userId);
+
 			if (user.publicMetadata?.role !== "admin") {
-				console.log(`Non-admin user ${userId} attempted to access ${req.url}`);
-				return NextResponse.redirect(new URL("/dashboard", req.url)); // Redirect non-admins to user dashboard
+				return NextResponse.redirect(new URL("/dashboard", req.url));
 			}
 		} catch (error) {
 			console.error("Error checking user role in middleware:", error);

@@ -6,7 +6,7 @@ import { UserProfile, Purchase } from "@/lib/models";
 // GET /api/admin/users - Hybrid approach: Fetch from Clerk + enrich with MongoDB
 export async function GET(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
@@ -14,8 +14,10 @@ export async function GET(request: NextRequest) {
 		await connectDB();
 
 		// Check if user is admin
-		const adminUser = await clerkClient.users.getUser(userId);
-		if (adminUser.publicMetadata?.role !== "admin") {
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
+		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
 
@@ -33,7 +35,7 @@ export async function GET(request: NextRequest) {
 
 		// Fetch users in batches until we have enough or no more users
 		while (clerkUsers.length < limit && hasMore) {
-			const response = await clerkClient.users.getUserList({
+			const response = await client.users.getUserList({
 				limit: 100, // Clerk's max limit per request
 				offset: currentOffset,
 			});
@@ -160,7 +162,7 @@ export async function GET(request: NextRequest) {
 // PUT /api/admin/users - Update user (role changes, ban/unban)
 export async function PUT(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
@@ -168,8 +170,10 @@ export async function PUT(request: NextRequest) {
 		await connectDB();
 
 		// Check if user is admin
-		const adminUser = await clerkClient.users.getUser(userId);
-		if (adminUser.publicMetadata?.role !== "admin") {
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
+		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
 
@@ -180,7 +184,7 @@ export async function PUT(request: NextRequest) {
 		}
 
 		// Get current user data
-		const targetUser = await clerkClient.users.getUser(targetUserId);
+		const targetUser = await client.users.getUser(targetUserId);
 		if (!targetUser) {
 			return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
 		}
@@ -213,7 +217,7 @@ export async function PUT(request: NextRequest) {
 		}
 
 		// Apply updates to Clerk
-		await clerkClient.users.updateUser(targetUserId, updates);
+		await client.users.updateUser(targetUserId, updates);
 
 		// Also update MongoDB profile if it exists
 		if (role !== undefined) {
@@ -237,7 +241,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/admin/users - Delete user account (permanent)
 export async function DELETE(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
@@ -245,8 +249,10 @@ export async function DELETE(request: NextRequest) {
 		await connectDB();
 
 		// Check if user is admin
-		const adminUser = await clerkClient.users.getUser(userId);
-		if (adminUser.publicMetadata?.role !== "admin") {
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
+		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
 
@@ -269,7 +275,7 @@ export async function DELETE(request: NextRequest) {
 		}
 
 		// Delete from Clerk first
-		await clerkClient.users.deleteUser(targetUserId);
+		await client.users.deleteUser(targetUserId);
 
 		// Clean up MongoDB data
 		await Promise.all([

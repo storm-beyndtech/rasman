@@ -12,7 +12,7 @@ interface StreamRouteParams {
 // GET /api/stream/[songId] - Stream audio file with access control
 export async function GET(request: NextRequest, { params }: StreamRouteParams) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		const { songId } = await params;
 
 		if (!userId) {
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest, { params }: StreamRouteParams) {
 // POST /api/stream/[songId] - Get streaming URL (more secure, returns URL instead of redirect)
 export async function POST(request: NextRequest, { params }: StreamRouteParams) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		const { songId } = await params;
 
 		if (!userId) {

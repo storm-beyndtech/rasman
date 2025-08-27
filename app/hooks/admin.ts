@@ -66,13 +66,13 @@ const fetchUsers = async (filters = {}) => {
 
 // Hook exports
 export function useDashboardStats() {
-  return useQuery({
-    queryKey: ["admin", "dashboard"],
-    queryFn: fetchDashboardStats,
-    retry: 1,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000,
-  });
+	return useQuery({
+		queryKey: ["admin", "dashboard"],
+		queryFn: fetchDashboardStats,
+		retry: 1,
+		retryDelay: 1000,
+		staleTime: 5 * 60 * 1000,
+	});
 }
 
 export function useSongs(filters = {}) {

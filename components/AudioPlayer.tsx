@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, Volume2, VolumeX, SkipForward, SkipBack, Download } from "lucide-react";
 import Image from "next/image";
-import { useAudio } from "@/provider/AudioProvider";
+import { useAudio } from "@/context/AudioProvider";
 
 const AudioPlayer: React.FC = () => {
 	const [showVolumeSlider, setShowVolumeSlider] = useState(false);

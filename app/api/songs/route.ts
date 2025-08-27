@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/mongodb";
-import { Song, UserProfile } from "@/lib/models";
+import { Song } from "@/lib/models";
 import { songSchema, songFilterSchema, songUpdateSchema } from "@/lib/validations";
 import { S3Service } from "@/lib/s3";
 
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 		// Convert string params to appropriate types
 		const filterParams = {
 			...queryParams,
-			featured: queryParams.featured ? queryParams.featured === "true" : undefined,
+			featured: queryParams.featured ? true : undefined,
 			minPrice: queryParams.minPrice ? parseFloat(queryParams.minPrice) : undefined,
 			maxPrice: queryParams.maxPrice ? parseFloat(queryParams.maxPrice) : undefined,
 			page: queryParams.page ? parseInt(queryParams.page) : 1,
@@ -95,19 +95,20 @@ export async function GET(request: NextRequest) {
 // POST /api/songs - Create new song (Admin only)
 export async function POST(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
 
-		await connectDB();
-
 		// Check if user is admin
-		const userProfile = await UserProfile.findOne({ clerkId: userId });
-		if (!userProfile || userProfile.role !== "admin") {
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
+		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
 
+		await connectDB();
 		const body = await request.json();
 
 		// Validate input
@@ -147,19 +148,20 @@ export async function POST(request: NextRequest) {
 // PUT /api/songs - Update song (Admin only)
 export async function PUT(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
 
-		await connectDB();
-
 		// Check if user is admin
-		const userProfile = await UserProfile.findOne({ clerkId: userId });
-		if (!userProfile || userProfile.role !== "admin") {
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
+		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
 
+		await connectDB();
 		const body = await request.json();
 
 		// Validate input
@@ -199,18 +201,20 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/songs - Delete song (Admin only)
 export async function DELETE(request: NextRequest) {
 	try {
-		const { userId } = auth();
+		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
 
-		await connectDB();
-
 		// Check if user is admin
-		const userProfile = await UserProfile.findOne({ clerkId: userId });
-		if (!userProfile || userProfile.role !== "admin") {
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
+
+		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
+
+		await connectDB();
 
 		const { searchParams } = new URL(request.url);
 		const songId = searchParams.get("id");

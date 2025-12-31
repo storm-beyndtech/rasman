@@ -45,19 +45,19 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
 						placeholder="Search your music..."
 						value={searchQuery}
 						onChange={(e) => onSearchChange(e.target.value)}
-						className="w-full pl-12 pr-4 py-3 bg-black/20 backdrop-blur-sm border border-white/20 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white placeholder-gray-400 transition-all duration-300"
+						className="w-full pl-12 pr-4 py-3 bg-black/5 backdrop-blur-sm border border-white/20 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white placeholder-gray-400 transition-all duration-300"
 					/>
 				</div>
 
 				{/* Filter Tabs */}
-				<div className="flex gap-2 bg-black/20 backdrop-blur-sm rounded-xl p-1 border border-white/10">
+				<div className="flex gap-2 bg-black/5 backdrop-blur-sm rounded-xl p-1 border border-white/10">
 					{filters.map((tab) => (
 						<motion.button
 							key={tab.key}
 							onClick={() => onFilterChange(tab.key)}
-							className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap ${
+							className={`px-4 py-1.5 rounded-lg font-medium transition-all duration-300 whitespace-nowrap ${
 								activeFilter === tab.key
-									? "bg-reggae-green text-white shadow-lg"
+									? "bg-reggae-green/70 text-white shadow-lg"
 									: "text-gray-300 hover:text-reggae-green hover:bg-white/5"
 							}`}
 							whileHover={{ scale: 1.02 }}
@@ -73,5 +73,3 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
 };
 
 export default DashboardFilters;
-
-

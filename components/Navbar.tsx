@@ -54,6 +54,7 @@ const Navbar: React.FC = () => {
 		{ href: "/songs", label: "Songs" },
 		{ href: "/albums", label: "Albums" },
 		{ href: "/biography", label: "Biography" },
+		{ href: "/contact", label: "Contact" },
 	];
 
 	const authLinks = isSignedIn
@@ -79,8 +80,8 @@ const Navbar: React.FC = () => {
 			</AnimatePresence>
 
 			<nav
-				className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 navbar-container ${
-					scrolled ? "bg-black/10 backdrop-blur-xl border-b border-gray-700/20 shadow-2xl" : "bg-transparent"
+				className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 navbar-container border-b border-transparent ${
+					scrolled ? "bg-black/10 backdrop-blur-xl border-gray-700/20 shadow-2xl" : "bg-transparent"
 				}`}
 			>
 				<div className="container mx-auto px-4">

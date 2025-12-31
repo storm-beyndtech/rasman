@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
 			return await handleAlbumFromSongs(formData, userId);
 		} else if (uploadType === "album") {
 			return await handleAlbumUpload(formData, userId);
+		} else if (uploadType === "update-cover") {
+			return await handleUpdateCover(formData, userId);
 		} else {
 			return NextResponse.json({ success: false, error: "Invalid upload type" }, { status: 400 });
 		}
@@ -251,7 +253,6 @@ async function handleAlbumUpload(formData: FormData, userId: string) {
 	}
 }
 
-
 // Handle album upload from content management songs
 async function handleAlbumFromSongs(formData: FormData, userId: string) {
 	try {
@@ -261,29 +262,29 @@ async function handleAlbumFromSongs(formData: FormData, userId: string) {
 		const description = formData.get("description") as string;
 		const featured = formData.get("featured") === "true";
 		const coverFile = formData.get("coverFile") as File;
-    
+
 		// Extract song IDs
 		const songIds: string[] = [];
 		let index = 0;
 		while (formData.get(`songIds[${index}]`)) {
-      songIds.push(formData.get(`songIds[${index}]`) as string);
+			songIds.push(formData.get(`songIds[${index}]`) as string);
 			index++;
 		}
-    
+
 		if (!title || !coverFile || songIds.length === 0) {
-      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+			return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
 		}
-    
+
 		// Validate cover file
 		if (!isValidImageFile(coverFile.name)) {
-      return NextResponse.json({ success: false, error: "Invalid cover image file type" }, { status: 400 });
+			return NextResponse.json({ success: false, error: "Invalid cover image file type" }, { status: 400 });
 		}
-    
+
 		// Upload cover image to S3
 		const coverFileKey = S3Service.generateCoverArtKey(coverFile.name, userId);
 		const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
 		await S3Service.uploadFile(coverFileKey, coverBuffer, getContentType(coverFile.name));
-    
+
 		// Create album in database
 		const album = new Album({
 			title,
@@ -297,18 +298,18 @@ async function handleAlbumFromSongs(formData: FormData, userId: string) {
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		});
-    
+
 		await album.save();
-    
+
 		// Update songs to reference the album
 		await Song.updateMany({ _id: { $in: songIds } }, { albumId: album._id });
-    
+
 		return NextResponse.json(
-      {
-        success: true,
+			{
+				success: true,
 				message: "Album created successfully",
 				data: {
-          albumId: album._id,
+					albumId: album._id,
 					title: album.title,
 					artist: album.artist,
 					songsCount: songIds.length,
@@ -317,61 +318,113 @@ async function handleAlbumFromSongs(formData: FormData, userId: string) {
 			{ status: 201 },
 		);
 	} catch (error) {
-    console.error("Error creating album from songs:", error);
+		console.error("Error creating album from songs:", error);
 		return NextResponse.json({ success: false, error: "Failed to create album" }, { status: 500 });
 	}
 }
 
+// Handle only cover photo
+async function handleUpdateCover(formData: FormData, userId: string) {
+	try {
+		const itemId = formData.get("id") as string;
+		const itemType = formData.get("itemType") as "song" | "album"; // so you know what to update
+    const coverFile = formData.get("coverArt") as File;
+    
+    console.log(coverFile)
+
+		if (!itemId || !itemType || !coverFile) {
+			return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+		}
+
+		if (!isValidImageFile(coverFile.name)) {
+			return NextResponse.json({ success: false, error: "Invalid image file type" }, { status: 400 });
+		}
+
+		// Upload to S3
+		const coverFileKey = S3Service.generateCoverArtKey(coverFile.name, userId);
+		const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
+		await S3Service.uploadFile(coverFileKey, coverBuffer, getContentType(coverFile.name));
+
+		// Update DB
+		let updatedDoc;
+		if (itemType === "song") {
+			updatedDoc = await Song.findByIdAndUpdate(
+				itemId,
+				{ coverArtUrl: coverFileKey, updatedAt: new Date() },
+				{ new: true },
+			);
+		} else {
+			updatedDoc = await Album.findByIdAndUpdate(
+				itemId,
+				{ coverArtUrl: coverFileKey, updatedAt: new Date() },
+				{ new: true },
+			);
+		}
+
+		if (!updatedDoc) {
+			return NextResponse.json({ success: false, error: "Item not found" }, { status: 404 });
+		}
+
+		return NextResponse.json({
+			success: true,
+			message: "Cover updated successfully",
+			data: { id: updatedDoc._id, coverArtUrl: updatedDoc.coverArtUrl },
+		});
+	} catch (error) {
+		console.error("Error updating cover:", error);
+		return NextResponse.json({ success: false, error: "Failed to update cover" }, { status: 500 });
+	}
+}
 
 // Get upload presigned URLs (for direct S3 upload)
 export async function GET(request: NextRequest) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+	try {
+		const { userId } = await auth();
+		if (!userId) {
+			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+		}
 
-    await connectDB();
+		await connectDB();
 
-    // Check if user is admin
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
+		// Check if user is admin
+		const client = await clerkClient();
+		const user = await client.users.getUser(userId);
 
-    if (user.publicMetadata?.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
-    }
+		if (user.publicMetadata?.role !== "admin") {
+			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
+		}
 
-    const { searchParams } = new URL(request.url);
-    const fileType = searchParams.get("fileType");
-    const fileName = searchParams.get("fileName");
+		const { searchParams } = new URL(request.url);
+		const fileType = searchParams.get("fileType");
+		const fileName = searchParams.get("fileName");
 
-    if (!fileType || !fileName) {
-      return NextResponse.json({ success: false, error: "File type and name are required" }, { status: 400 });
-    }
+		if (!fileType || !fileName) {
+			return NextResponse.json({ success: false, error: "File type and name are required" }, { status: 400 });
+		}
 
-    // Generate appropriate file key
-    let fileKey: string;
-    if (fileType === "audio") {
-      fileKey = S3Service.generateAudioFileKey(fileName, userId);
-    } else if (fileType === "image") {
-      fileKey = S3Service.generateCoverArtKey(fileName, userId);
-    } else {
-      return NextResponse.json({ success: false, error: "Invalid file type" }, { status: 400 });
-    }
+		// Generate appropriate file key
+		let fileKey: string;
+		if (fileType === "audio") {
+			fileKey = S3Service.generateAudioFileKey(fileName, userId);
+		} else if (fileType === "image") {
+			fileKey = S3Service.generateCoverArtKey(fileName, userId);
+		} else {
+			return NextResponse.json({ success: false, error: "Invalid file type" }, { status: 400 });
+		}
 
-    // Generate presigned URL for upload
-    const uploadUrl = await S3Service.getUploadUrl(fileKey, getContentType(fileName));
+		// Generate presigned URL for upload
+		const uploadUrl = await S3Service.getUploadUrl(fileKey, getContentType(fileName));
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        uploadUrl,
-        fileKey,
-        expires: "1 hour",
-      },
-    });
-  } catch (error) {
-    console.error("Error generating upload URL:", error);
-    return NextResponse.json({ success: false, error: "Failed to generate upload URL" }, { status: 500 });
-  }
+		return NextResponse.json({
+			success: true,
+			data: {
+				uploadUrl,
+				fileKey,
+				expires: "1 hour",
+			},
+		});
+	} catch (error) {
+		console.error("Error generating upload URL:", error);
+		return NextResponse.json({ success: false, error: "Failed to generate upload URL" }, { status: 500 });
+	}
 }

@@ -11,8 +11,6 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 		}
 
-		await connectDB();
-
 		// Check if user is admin
 		const client = await clerkClient();
 		const user = await client.users.getUser(userId);
@@ -20,6 +18,8 @@ export async function GET(request: NextRequest) {
 		if (user.publicMetadata?.role !== "admin") {
 			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
 		}
+
+		await connectDB();
 
 		// Get current date and calculate date ranges
 		const now = new Date();
@@ -41,20 +41,20 @@ export async function GET(request: NextRequest) {
 			recentAlbums,
 			recentUsers,
 		] = await Promise.all([
-			Song.countDocuments(),
-			Album.countDocuments(),
-			UserProfile.countDocuments(),
-			Song.countDocuments({ createdAt: { $gte: startOfMonth } }),
-			Song.countDocuments({
+			Song.estimatedDocumentCount(),
+			Album.estimatedDocumentCount(),
+			UserProfile.estimatedDocumentCount(),
+			Song.estimatedDocumentCount({ createdAt: { $gte: startOfMonth } }),
+			Song.estimatedDocumentCount({
 				createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
 			}),
-			Album.countDocuments({ createdAt: { $gte: startOfMonth } }),
-			Album.countDocuments({
+			Album.estimatedDocumentCount({ createdAt: { $gte: startOfMonth } }),
+			Album.estimatedDocumentCount({
 				createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
 			}),
-			Song.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
-			Album.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
-			UserProfile.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+			Song.estimatedDocumentCount({ createdAt: { $gte: sevenDaysAgo } }),
+			Album.estimatedDocumentCount({ createdAt: { $gte: sevenDaysAgo } }),
+			UserProfile.estimatedDocumentCount({ createdAt: { $gte: sevenDaysAgo } }),
 		]);
 
 		// Calculate revenue (assuming purchases are tracked in a Purchase model)
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
 			recentActivity.push({
 				id: song._id.toString(),
 				type: "upload",
-				description: `New song uploaded: "${song.title}" by ${song.artist}`,
+				description: `New song uploaded: "${song.title}"`,
 				timestamp: formatRelativeTime(song.createdAt),
 			});
 		});
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
 			recentActivity.push({
 				id: album._id.toString(),
 				type: "upload",
-				description: `New album uploaded: "${album.title}" by ${album.artist}`,
+				description: `New album uploaded: "${album.title}"`,
 				timestamp: formatRelativeTime(album.createdAt),
 			});
 		});
@@ -164,9 +164,7 @@ export async function GET(request: NextRequest) {
 			recentActivity.push({
 				id: purchase._id.toString(),
 				type: "purchase",
-				description: `${purchase.itemType === "song" ? "Song" : "Album"} purchased: "${
-					itemDetails.title
-				}" by ${itemDetails.artist}`,
+				description: `${purchase.itemType === "song" ? "Song" : "Album"} purchased: ${itemDetails.title}`,
 				timestamp: formatRelativeTime(purchase.purchaseDate),
 				amount: purchase.amount,
 				status: purchase.status,

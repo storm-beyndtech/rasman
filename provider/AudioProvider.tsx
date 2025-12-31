@@ -1,8 +1,9 @@
 "use client";
 
+import type { IAlbum, IPurchase, ISong } from "@/lib/models";
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { IAlbum, IPurchase, ISong } from "@/lib/models";
+import { useUserPurchases } from "@/app/hooks/music";
 
 interface AudioState {
 	currentSong: ISong | null;
@@ -55,7 +56,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 		duration: 0,
 		volume: 1,
 	});
-	const [purchases, setPurchases] = useState<IPurchase[]>([]);
+	const { data: purchaseData } = useUserPurchases({ status: "completed", limit: 200 });
+	const purchases: IPurchase[] = purchaseData?.purchases || [];
 
 	// Initialize audio element
 	useEffect(() => {
@@ -98,25 +100,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 			audio.pause();
 		};
 	}, []);
-
-	// Fetch user purchases
-	useEffect(() => {
-		if (isSignedIn) {
-			fetchUserPurchases();
-		}
-	}, [isSignedIn]);
-
-	const fetchUserPurchases = async () => {
-		try {
-			const response = await fetch("/api/purchase?status=completed");
-			if (response.ok) {
-				const data = await response.json();
-				setPurchases(data.data?.purchases || []);
-			}
-		} catch (error) {
-			console.error("Error fetching purchases:", error);
-		}
-	};
 
 	const hasPurchased = useCallback(
 		(itemId: string, type: "song" | "album") => {

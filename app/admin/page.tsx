@@ -7,7 +7,7 @@ import {
 	Music,
 	Disc,
 	Users,
-	DollarSign,
+	BanknoteArrowDown,
 	TrendingUp,
 	Calendar,
 	ShoppingBag,
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
 			title: "Total Revenue",
 			value: formatCurrency(stats.totalRevenue),
 			change: formatPercentage(stats.monthlyGrowth),
-			icon: <DollarSign size={28} />,
+			icon: <BanknoteArrowDown size={24} strokeWidth={1.2} />,
 			color: "from-green-500/10 to-green-600/5 border-green-500/30",
 			iconColor: "text-green-400",
 			positive: stats.monthlyGrowth >= 0,
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
 			title: "Total Users",
 			value: (stats.totalUsers || 0).toLocaleString(),
 			change: "Platform users",
-			icon: <Users size={28} />,
+			icon: <Users size={24} strokeWidth={1.2} />,
 			color: "from-blue-500/10 to-blue-600/5 border-blue-500/30",
 			iconColor: "text-blue-400",
 			positive: true,
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
 			title: "Songs Published",
 			value: stats.totalSongs || 0,
 			change: "Total tracks",
-			icon: <Music size={28} />,
+			icon: <Music size={24} strokeWidth={1.2} />,
 			color: "from-reggae-green/10 to-green-600/5 border-reggae-green/30",
 			iconColor: "text-reggae-green",
 			positive: true,
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
 			title: "Albums Published",
 			value: stats.totalAlbums || 0,
 			change: "Total albums",
-			icon: <Disc size={28} />,
+			icon: <Disc size={24} strokeWidth={1.2} />,
 			color: "from-purple-500/10 to-purple-600/5 border-purple-500/30",
 			iconColor: "text-purple-400",
 			positive: true,
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
 			title: "Recent Sales",
 			value: stats.recentSales || 0,
 			change: "Last 7 days",
-			icon: <ShoppingBag size={28} />,
+			icon: <ShoppingBag size={24} strokeWidth={1.2} />,
 			color: "from-yellow-500/10 to-yellow-600/5 border-yellow-500/30",
 			iconColor: "text-yellow-400",
 			positive: true,
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
 			title: "Active Sessions",
 			value: stats.activeSessions || 0,
 			change: "Currently online",
-			icon: <Eye size={28} />,
+			icon: <Eye size={24} strokeWidth={1.2} />,
 			color: "from-orange-500/10 to-orange-600/5 border-orange-500/30",
 			iconColor: "text-orange-400",
 			positive: true,
@@ -157,7 +157,7 @@ export default function AdminDashboard() {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: index * 0.1 }}
-						className={`group bg-black/20 backdrop-blur-2xl border rounded-2xl p-6 hover:scale-[1.02] transition-all duration-500 hover:shadow-xl ${stat.color}`}
+						className={`font-montserrat group bg-transparent backdrop-blur-sm border rounded-2xl p-6 hover:scale-[1.02] transition-all duration-500 hover:shadow-xl ${stat.color}`}
 					>
 						<div
 							className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl ${stat.color}`}
@@ -165,19 +165,19 @@ export default function AdminDashboard() {
 						<div className="relative z-10">
 							<div className="flex items-center justify-between mb-4">
 								<div
-									className={`w-14 h-14 rounded-xl bg-black/30 backdrop-blur-sm border border-gray-700/30 flex items-center justify-center ${stat.iconColor}`}
+									className={`w-14 h-14 rounded-xl bg-stone-900/40 backdrop-blur-sm border border-gray-700/30 flex items-center justify-center ${stat.iconColor}`}
 								>
 									{stat.icon}
 								</div>
 								<div
-									className={`flex items-center gap-1 ${stat.positive ? "text-green-400" : "text-red-400"}`}
+									className={`flex items-center gap-1 ${stat.positive ? "text-emerald-500" : "text-red-400"}`}
 								>
 									{stat.positive ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
 									<span className="text-sm font-medium">{stat.change}</span>
 								</div>
 							</div>
 							<div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-							<div className="font-medium text-gray-300 group-hover:text-white transition-colors duration-300">
+							<div className="font-medium text-sm text-white/50 group-hover:text-white transition-colors duration-300">
 								{stat.title}
 							</div>
 						</div>
@@ -192,7 +192,7 @@ export default function AdminDashboard() {
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.7 }}
-					className="xl:col-span-2 bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+					className="h-[500px] overflow-y-scroll hide-scrollbar xl:col-span-2 bg-transparent backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6"
 				>
 					<div className="flex items-center justify-between mb-6">
 						<h3 className="text-xl font-bold text-white">Recent Activity</h3>
@@ -202,28 +202,28 @@ export default function AdminDashboard() {
 							{recentActivity.slice(0, 6).map((activity: any) => (
 								<div
 									key={activity.id}
-									className="flex items-center gap-4 p-4 bg-black/20 rounded-xl border border-gray-700/20 hover:border-gray-600/30 transition-all duration-200"
+									className="flex items-center gap-4 p-4 bg-stone-900/10 rounded-xl border border-gray-700/20 hover:border-gray-600/30 transition-all duration-200"
 								>
 									<div
 										className={`w-10 h-10 rounded-full flex items-center justify-center ${
 											activity.type === "purchase"
-												? "bg-emerald-500/20 text-emerald-400"
+												? "bg-emerald-500/20 text-green-400"
 												: activity.type === "upload"
 												? "bg-blue-500/20 text-blue-400"
 												: "bg-purple-500/20 text-purple-400"
 										}`}
 									>
 										{activity.type === "purchase" ? (
-											<DollarSign size={18} />
+											<BanknoteArrowDown size={18} />
 										) : activity.type === "upload" ? (
 											<Music size={18} />
 										) : (
 											<Users size={18} />
 										)}
 									</div>
-									<div className="flex-1 min-w-0">
-										<p className="font-medium text-white truncate">{activity.description}</p>
-										<p className="text-sm text-gray-400">{activity.timestamp}</p>
+									<div className="flex-1 min-w-0 space-y-1">
+										<p className="font-medium text-sm text-white truncate">{activity.description}</p>
+										<p className="text-xs text-stone-600">{activity.timestamp}</p>
 									</div>
 									{activity.amount && (
 										<div>
@@ -265,7 +265,7 @@ export default function AdminDashboard() {
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.8 }}
-					className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+					className="bg-transparent backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6"
 				>
 					<h3 className="text-xl font-bold text-white mb-6">Performance Metrics</h3>
 					<div className="space-y-6">
@@ -355,7 +355,7 @@ export default function AdminDashboard() {
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ delay: 0.9 }}
-				className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+				className="bg-transparent backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6"
 			>
 				<h3 className="text-xl font-bold text-white mb-6">Platform Status</h3>
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

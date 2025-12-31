@@ -38,6 +38,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	return (
 		<ClerkProvider>
 			<html lang="en">
+				<head>
+					<link rel="preconnect" href="https://fonts.googleapis.com" />
+					<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+					<link
+						href="https://fonts.googleapis.com/css2?family=Babylonica&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap"
+						rel="stylesheet"
+					/>
+				</head>
 				<body className={`${inter.className} antialiased`}>
 					<Providers>
 						<div className="flex flex-col min-h-screen">

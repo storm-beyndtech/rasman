@@ -58,7 +58,16 @@ export async function GET(request: NextRequest) {
 		// Generate cover art URLs (public access for browsing)
 		const albumsWithUrls = await Promise.all(
 			albums.map(async (album) => {
-				const coverArtUrl = await S3Service.getSignedDownloadUrl(album.coverArtUrl, 3600); // 1 hour expiry
+				let coverArtUrl = album.coverArtUrl;
+
+				if (coverArtUrl && !coverArtUrl.startsWith("http")) {
+					try {
+						coverArtUrl = await S3Service.getSignedDownloadUrl(coverArtUrl, 3600); // 1 hour expiry
+					} catch (s3Error) {
+						console.error("Cover signing failed for album", album._id?.toString(), coverArtUrl, s3Error);
+					}
+				}
+
 				return {
 					...album,
 					coverArtUrl,

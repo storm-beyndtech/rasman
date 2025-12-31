@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
 	Search,
@@ -15,159 +15,81 @@ import {
 	Loader2,
 	X,
 } from "lucide-react";
-import { IAlbum } from "@/lib/models";
 import AlbumCard from "@/components/AlbumCard";
 import { useAudio } from "@/provider/AudioProvider";
-
-interface AlbumsPageState {
-	albums: IAlbum[];
-	loading: boolean;
-	error: string | null;
-	filters: {
-		search: string;
-		featured: boolean | null;
-		minPrice: number | null;
-		maxPrice: number | null;
-		sortBy: string;
-		sortOrder: string;
-	};
-	pagination: {
-		page: number;
-		limit: number;
-		totalCount: number;
-		totalPages: number;
-		hasNext: boolean;
-		hasPrev: boolean;
-	};
-	viewMode: "grid" | "list";
-	showFilters: boolean;
-}
+import { useAlbums } from "../hooks/music";
 
 const AlbumsPage: React.FC = () => {
 	const { hasPurchased } = useAudio();
-	const [state, setState] = useState<AlbumsPageState>({
-		albums: [],
-		loading: true,
-		error: null,
-		filters: {
-			search: "",
-			featured: null,
-			minPrice: null,
-			maxPrice: null,
-			sortBy: "releaseDate",
-			sortOrder: "desc",
-		},
-		pagination: {
-			page: 1,
-			limit: 12,
-			totalCount: 0,
-			totalPages: 0,
-			hasNext: false,
-			hasPrev: false,
-		},
-		viewMode: "grid",
-		showFilters: false,
+	const [filters, setFilters] = useState({
+		search: "",
+		featured: null as boolean | null,
+		minPrice: null as number | null,
+		maxPrice: null as number | null,
+		sortBy: "releaseDate",
+		sortOrder: "desc",
+	});
+	const [page, setPage] = useState(1);
+	const limit = 12;
+	const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+	const [showFilters, setShowFilters] = useState(false);
+	const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+	const { data, isLoading, error, refetch, isFetching } = useAlbums({
+		...filters,
+		page,
+		limit,
 	});
 
-	const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-
-	// Fetch albums
-	const fetchAlbums = async () => {
-		setState((prev) => ({ ...prev, loading: true, error: null }));
-
-		try {
-			const params = new URLSearchParams();
-
-			// Add filter parameters
-			Object.entries(state.filters).forEach(([key, value]) => {
-				if (value !== null && value !== "") {
-					params.append(key, value.toString());
-				}
-			});
-
-			// Add pagination parameters
-			params.append("page", state.pagination.page.toString());
-			params.append("limit", state.pagination.limit.toString());
-
-			const response = await fetch(`/api/albums?${params}`);
-			const result = await response.json();
-
-			if (!result.success) {
-				throw new Error(result.error || "Failed to fetch albums");
-			}
-
-			setState((prev) => ({
-				...prev,
-				albums: result.data.albums,
-				pagination: result.data.pagination,
-				loading: false,
-			}));
-		} catch (error) {
-			setState((prev) => ({
-				...prev,
-				error: error instanceof Error ? error.message : "An error occurred",
-				loading: false,
-			}));
-		}
+	const albums = data?.albums || [];
+	const pagination = data?.pagination || {
+		page,
+		limit,
+		totalCount: 0,
+		totalPages: 0,
+		hasNext: false,
+		hasPrev: false,
 	};
 
-	// Effect to fetch albums when filters or pagination change
-	useEffect(() => {
-		fetchAlbums();
-	}, [state.filters, state.pagination.page]);
+	const isInitialLoading = isLoading && !data;
+	const errorMessage = error instanceof Error ? error.message : "Failed to load albums";
 
-	// Handle search input with debounce
 	const handleSearchChange = (value: string) => {
 		if (searchTimeout) {
 			clearTimeout(searchTimeout);
 		}
 
 		const timeout = setTimeout(() => {
-			setState((prev) => ({
-				...prev,
-				filters: { ...prev.filters, search: value },
-				pagination: { ...prev.pagination, page: 1 },
-			}));
+			setFilters((prev) => ({ ...prev, search: value }));
+			setPage(1);
 		}, 500);
 
 		setSearchTimeout(timeout);
 	};
 
-	// Handle filter changes
 	const handleFilterChange = (key: string, value: any) => {
-		setState((prev) => ({
-			...prev,
-			filters: { ...prev.filters, [key]: value },
-			pagination: { ...prev.pagination, page: 1 },
-		}));
+		setFilters((prev) => ({ ...prev, [key]: value }));
+		setPage(1);
 	};
 
-	// Handle page change
-	const handlePageChange = (page: number) => {
-		setState((prev) => ({
-			...prev,
-			pagination: { ...prev.pagination, page },
-		}));
+	const handlePageChange = (newPage: number) => {
+		setPage(newPage);
 		window.scrollTo({ top: 0, behavior: "smooth" });
 	};
 
-	// Clear all filters
 	const clearFilters = () => {
-		setState((prev) => ({
-			...prev,
-			filters: {
-				search: "",
-				featured: null,
-				minPrice: null,
-				maxPrice: null,
-				sortBy: "releaseDate",
-				sortOrder: "desc",
-			},
-			pagination: { ...prev.pagination, page: 1 },
-		}));
+		setFilters({
+			search: "",
+			featured: null,
+			minPrice: null,
+			maxPrice: null,
+			sortBy: "releaseDate",
+			sortOrder: "desc",
+		});
+		setPage(1);
 	};
 
-	const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
+	const formatPrice = (price: number) => `NGN ${price.toLocaleString()}`;
 	const formatDate = (date: Date | string) => {
 		const dateObj = typeof date === "string" ? new Date(date) : date;
 		return dateObj.toLocaleDateString("en-GB", {
@@ -231,9 +153,9 @@ const AlbumsPage: React.FC = () => {
 						{/* Controls */}
 						<div className="flex items-center gap-4">
 							<button
-								onClick={() => setState((prev) => ({ ...prev, showFilters: !prev.showFilters }))}
+								onClick={() => setShowFilters((prev) => !prev)}
 								className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
-									state.showFilters
+									showFilters
 										? "bg-reggae-yellow text-black"
 										: "bg-black/30 border border-gray-700/30 text-gray-300 hover:text-reggae-yellow hover:border-reggae-yellow/30"
 								}`}
@@ -244,9 +166,9 @@ const AlbumsPage: React.FC = () => {
 
 							<div className="flex items-center gap-2 bg-black/30 border border-gray-700/30 rounded-xl p-1">
 								<button
-									onClick={() => setState((prev) => ({ ...prev, viewMode: "grid" }))}
+									onClick={() => setViewMode("grid")}
 									className={`p-2 rounded-lg transition-all duration-300 ${
-										state.viewMode === "grid"
+										viewMode === "grid"
 											? "bg-reggae-yellow text-black"
 											: "text-gray-400 hover:text-reggae-yellow"
 									}`}
@@ -254,9 +176,9 @@ const AlbumsPage: React.FC = () => {
 									<Grid size={18} />
 								</button>
 								<button
-									onClick={() => setState((prev) => ({ ...prev, viewMode: "list" }))}
+									onClick={() => setViewMode("list")}
 									className={`p-2 rounded-lg transition-all duration-300 ${
-										state.viewMode === "list"
+										viewMode === "list"
 											? "bg-reggae-yellow text-black"
 											: "text-gray-400 hover:text-reggae-yellow"
 									}`}
@@ -268,7 +190,7 @@ const AlbumsPage: React.FC = () => {
 					</div>
 
 					{/* Expandable Filters */}
-					{state.showFilters && (
+					{showFilters && (
 						<motion.div
 							initial={{ height: 0, opacity: 0 }}
 							animate={{ height: "auto", opacity: 1 }}
@@ -280,7 +202,7 @@ const AlbumsPage: React.FC = () => {
 								<div>
 									<label className="block text-sm font-medium text-gray-300 mb-2">Featured</label>
 									<select
-										value={state.filters.featured === null ? "" : state.filters.featured.toString()}
+										value={filters.featured === null ? "" : filters.featured.toString()}
 										onChange={(e) =>
 											handleFilterChange("featured", e.target.value === "" ? null : e.target.value === "true")
 										}
@@ -296,7 +218,7 @@ const AlbumsPage: React.FC = () => {
 								<div>
 									<label className="block text-sm font-medium text-gray-300 mb-2">Sort By</label>
 									<select
-										value={state.filters.sortBy}
+										value={filters.sortBy}
 										onChange={(e) => handleFilterChange("sortBy", e.target.value)}
 										className="w-full p-3 bg-black/30 border border-gray-700/30 rounded-lg focus:ring-2 focus:ring-reggae-yellow focus:border-reggae-yellow/50 outline-none text-white"
 									>
@@ -311,7 +233,7 @@ const AlbumsPage: React.FC = () => {
 								<div>
 									<label className="block text-sm font-medium text-gray-300 mb-2">Order</label>
 									<select
-										value={state.filters.sortOrder}
+										value={filters.sortOrder}
 										onChange={(e) => handleFilterChange("sortOrder", e.target.value)}
 										className="w-full p-3 bg-black/30 border border-gray-700/30 rounded-lg focus:ring-2 focus:ring-reggae-yellow focus:border-reggae-yellow/50 outline-none text-white"
 									>
@@ -322,7 +244,10 @@ const AlbumsPage: React.FC = () => {
 							</div>
 
 							<div className="flex justify-between items-center">
-								<div className="text-sm text-gray-400">{state.pagination.totalCount} albums found</div>
+								<div className="text-sm text-gray-400">
+									{pagination.totalCount} albums found{" "}
+									{isFetching && <span className="text-reggae-yellow ml-2">(updating...)</span>}
+								</div>
 								<button
 									onClick={clearFilters}
 									className="flex items-center gap-2 px-4 py-2 text-gray-400 hover:text-reggae-yellow transition-colors duration-300"
@@ -336,32 +261,32 @@ const AlbumsPage: React.FC = () => {
 				</motion.div>
 
 				{/* Results */}
-				{state.loading ? (
+				{isInitialLoading ? (
 					<div className="flex items-center justify-center py-20">
 						<div className="text-center">
 							<Loader2 className="w-12 h-12 text-reggae-yellow animate-spin mx-auto mb-4" />
 							<p className="text-gray-400">Loading album collections...</p>
 						</div>
 					</div>
-				) : state.error ? (
+				) : error ? (
 					<div className="text-center py-12">
 						<div className="bg-black/20 backdrop-blur-2xl border border-red-500/30 rounded-2xl p-8 max-w-md mx-auto">
-							<div className="text-red-400 text-lg mb-4">{state.error}</div>
+							<div className="text-red-400 text-lg mb-4">{errorMessage}</div>
 							<button
-								onClick={fetchAlbums}
+								onClick={() => refetch()}
 								className="bg-reggae-yellow text-black px-6 py-3 rounded-xl hover:bg-yellow-400 transition-colors font-medium"
 							>
 								Try Again
 							</button>
 						</div>
 					</div>
-				) : state.albums.length === 0 ? (
+				) : albums.length === 0 ? (
 					<div className="text-center py-12">
 						<div className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-12 max-w-md mx-auto">
 							<Disc className="w-16 h-16 text-gray-500 mx-auto mb-4" />
 							<h3 className="text-xl font-bold text-white mb-2">No albums found</h3>
 							<p className="text-gray-400 mb-6">
-								{state.filters.search || state.filters.featured !== null
+								{filters.search || filters.featured !== null
 									? "Try adjusting your filters"
 									: "No albums have been released yet"}
 							</p>
@@ -382,20 +307,20 @@ const AlbumsPage: React.FC = () => {
 							variants={fadeInVariants}
 							transition={{ delay: 0.4 }}
 							className={
-								state.viewMode === "grid"
+								viewMode === "grid"
 									? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12"
 									: "space-y-4 mb-12"
 							}
 						>
-							{state.albums.map((album, index) => (
+							{albums.map((album, index) => (
 								<motion.div
 									key={album._id}
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: index * 0.05 }}
-									className={state.viewMode === "list" ? "w-full" : ""}
+									className={viewMode === "list" ? "w-full" : ""}
 								>
-									{state.viewMode === "grid" ? (
+									{viewMode === "grid" ? (
 										<AlbumCard album={album} index={index} />
 									) : (
 										// List view
@@ -459,7 +384,7 @@ const AlbumsPage: React.FC = () => {
 						</motion.div>
 
 						{/* Pagination */}
-						{state.pagination.totalPages > 1 && (
+						{pagination.totalPages > 1 && (
 							<motion.div
 								initial="initial"
 								animate="animate"
@@ -468,35 +393,36 @@ const AlbumsPage: React.FC = () => {
 								className="flex items-center justify-center gap-2"
 							>
 								<button
-									onClick={() => handlePageChange(state.pagination.page - 1)}
-									disabled={!state.pagination.hasPrev}
+									onClick={() => handlePageChange(pagination.page - 1)}
+									disabled={!pagination.hasPrev || isFetching}
 									className="px-4 py-2 bg-black/30 border border-gray-700/30 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black/50 transition-all duration-300"
 								>
 									Previous
 								</button>
 
-								{Array.from({ length: Math.min(state.pagination.totalPages, 5) }, (_, i) => {
-									const page = i + Math.max(1, state.pagination.page - 2);
-									if (page > state.pagination.totalPages) return null;
+								{Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => {
+									const pageNumber = i + Math.max(1, pagination.page - 2);
+									if (pageNumber > pagination.totalPages) return null;
 
 									return (
 										<button
-											key={page}
-											onClick={() => handlePageChange(page)}
+											key={pageNumber}
+											onClick={() => handlePageChange(pageNumber)}
+											disabled={isFetching}
 											className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-												page === state.pagination.page
+												pageNumber === pagination.page
 													? "bg-reggae-yellow text-black"
 													: "bg-black/30 border border-gray-700/30 text-white hover:bg-black/50"
 											}`}
 										>
-											{page}
+											{pageNumber}
 										</button>
 									);
 								}).filter(Boolean)}
 
 								<button
-									onClick={() => handlePageChange(state.pagination.page + 1)}
-									disabled={!state.pagination.hasNext}
+									onClick={() => handlePageChange(pagination.page + 1)}
+									disabled={!pagination.hasNext || isFetching}
 									className="px-4 py-2 bg-black/30 border border-gray-700/30 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black/50 transition-all duration-300"
 								>
 									Next

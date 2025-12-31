@@ -189,8 +189,10 @@ const userProfileSchema = new mongoose.Schema({
 songSchema.index({ title: 1, artist: 1 });
 songSchema.index({ albumId: 1 });
 songSchema.index({ featured: 1 });
+songSchema.index({ createdAt: 1 });
 albumSchema.index({ title: 1, artist: 1 });
 albumSchema.index({ featured: 1 });
+albumSchema.index({ createdAt: 1 });
 purchaseSchema.index({ userId: 1 });
 
 // Export models

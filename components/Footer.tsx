@@ -14,6 +14,7 @@ export default function Footer() {
 		{ href: "/biography", label: "BIO" },
 		{ href: "/songs", label: "SONGS" },
 		{ href: "/albums", label: "ALBUMS" },
+		{ href: "/contact", label: "CONTACT" },
 	];
 
 	return (

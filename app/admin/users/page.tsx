@@ -10,16 +10,12 @@ import {
 	Mail,
 	Calendar,
 	ShoppingBag,
-	Shield,
 	Loader2,
-	MoreVertical,
 	Ban,
 	UserCheck,
 	Trash2,
-	Filter,
 	Download,
 	Eye,
-	X,
 	AlertTriangle,
 	CheckCircle,
 } from "lucide-react";
@@ -245,7 +241,7 @@ export default function AdminUserManagement() {
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
-					className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+					className="bg-black/10 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6"
 				>
 					<div className="flex items-center justify-between">
 						<div>
@@ -262,7 +258,7 @@ export default function AdminUserManagement() {
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.1 }}
-					className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+					className="bg-black/10 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6"
 				>
 					<div className="flex items-center justify-between">
 						<div>
@@ -281,7 +277,7 @@ export default function AdminUserManagement() {
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.2 }}
-					className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+					className="bg-black/10 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6"
 				>
 					<div className="flex items-center justify-between">
 						<div>
@@ -298,7 +294,7 @@ export default function AdminUserManagement() {
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.3 }}
-					className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6"
+					className="bg-black/10 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6"
 				>
 					<div className="flex items-center justify-between">
 						<div>
@@ -315,7 +311,7 @@ export default function AdminUserManagement() {
 			</div>
 
 			{/* Search and Filters */}
-			<div className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6">
+			<div className="bg-black/10 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6">
 				<div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-6">
 					{/* Search */}
 					<div className="relative flex-1 max-w-md">
@@ -325,7 +321,7 @@ export default function AdminUserManagement() {
 							placeholder="Search users by name or email..."
 							value={state.searchQuery}
 							onChange={(e) => handleSearchChange(e.target.value)}
-							className="w-full pl-12 pr-4 py-3 bg-black/30 backdrop-blur-sm border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white placeholder-gray-400 transition-all duration-300"
+							className="w-full pl-12 pr-4 py-3 bg-black/5 backdrop-blur-sm border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white placeholder-gray-400 transition-all duration-300"
 						/>
 					</div>
 
@@ -334,7 +330,7 @@ export default function AdminUserManagement() {
 						<select
 							value={state.roleFilter}
 							onChange={(e) => setState((prev) => ({ ...prev, roleFilter: e.target.value as any }))}
-							className="px-4 py-3 bg-black/30 backdrop-blur-sm border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white"
+							className="px-4 py-3 bg-black/5 backdrop-blur-sm border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white"
 						>
 							<option value="all">All Roles</option>
 							<option value="user">Users</option>
@@ -344,14 +340,14 @@ export default function AdminUserManagement() {
 						<select
 							value={state.statusFilter}
 							onChange={(e) => setState((prev) => ({ ...prev, statusFilter: e.target.value as any }))}
-							className="px-4 py-3 bg-black/30 backdrop-blur-sm border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white"
+							className="px-4 py-3 bg-black/5 backdrop-blur-sm border border-gray-700/30 rounded-xl focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none text-white"
 						>
 							<option value="all">All Status</option>
 							<option value="active">Active</option>
 							<option value="banned">Banned</option>
 						</select>
 
-						<button className="flex items-center gap-2 px-4 py-3 bg-black/30 backdrop-blur-sm border border-gray-700/30 rounded-xl text-gray-400 hover:text-reggae-green transition-colors duration-300">
+						<button className="flex items-center gap-2 px-4 py-3 bg-black/5 backdrop-blur-sm border border-gray-700/30 rounded-xl text-gray-400 hover:text-reggae-green transition-colors duration-300">
 							<Download size={18} />
 							Export
 						</button>
@@ -387,7 +383,7 @@ export default function AdminUserManagement() {
 					</div>
 				</div>
 			) : state.users.length === 0 ? (
-				<div className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-12 text-center">
+				<div className="bg-black/10 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-12 text-center">
 					<Users className="w-16 h-16 text-gray-500 mx-auto mb-4" />
 					<h3 className="text-xl font-bold text-white mb-2">No Users Found</h3>
 					<p className="text-gray-400">
@@ -395,17 +391,17 @@ export default function AdminUserManagement() {
 					</p>
 				</div>
 			) : (
-				<div className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl overflow-hidden">
+				<div className="bg-black/10 backdrop-blur-sm border border-gray-700/30 rounded-2xl overflow-hidden">
 					<div className="overflow-x-auto">
 						<table className="w-full">
-							<thead className="bg-black/30 border-b border-gray-700/30">
+							<thead className="bg-black/5 border-b border-gray-700/30">
 								<tr>
 									<th className="text-left px-6 py-4">
 										<input
 											type="checkbox"
 											checked={state.selectedUsers.length === state.users.length}
 											onChange={handleSelectAll}
-											className="w-4 h-4 text-reggae-green bg-black/30 border-gray-600 rounded focus:ring-reggae-green"
+											className="w-4 h-4 text-reggae-green bg-black/5 border-gray-600 rounded focus:ring-reggae-green"
 										/>
 									</th>
 									<th className="text-left px-6 py-4 font-semibold text-gray-300">User</th>
@@ -423,7 +419,7 @@ export default function AdminUserManagement() {
 										initial={{ opacity: 0, y: 10 }}
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ delay: index * 0.05 }}
-										className={`border-b border-gray-700/20 hover:bg-black/20 transition-colors duration-200 ${
+										className={`border-b border-gray-700/20 hover:bg-black/10 transition-colors duration-200 ${
 											user.banned ? "opacity-60" : ""
 										}`}
 									>
@@ -432,13 +428,13 @@ export default function AdminUserManagement() {
 												type="checkbox"
 												checked={state.selectedUsers.includes(user.clerkId)}
 												onChange={() => handleSelectUser(user.clerkId)}
-												className="w-4 h-4 text-reggae-green bg-black/30 border-gray-600 rounded focus:ring-reggae-green"
+												className="w-4 h-4 text-reggae-green bg-black/5 border-gray-600 rounded focus:ring-reggae-green"
 											/>
 										</td>
 
 										<td className="px-6 py-4">
 											<div className="flex items-center gap-3">
-												<div className="relative">
+												<div className="relative flex-shrink-0">
 													{user.imageUrl ? (
 														<img
 															src={user.imageUrl}
@@ -457,9 +453,9 @@ export default function AdminUserManagement() {
 													)}
 												</div>
 												<div>
-													<p className="font-medium text-white">{getUserName(user)}</p>
-													<p className="text-sm text-gray-400 flex items-center gap-1">
-														<Mail size={12} />
+													<p className="w-40 font-medium text-white truncate">{getUserName(user)}</p>
+													<p className="w-40 text-xs text-gray-400/70 flex items-center gap-1 truncate">
+														<Mail size={12} className="flex-shrink-0" />
 														{user.email}
 													</p>
 													{!user.hasMongoProfile && (
@@ -522,7 +518,7 @@ export default function AdminUserManagement() {
 												<select
 													value={user.role}
 													onChange={(e) => updateUserRole(user.clerkId, e.target.value as "user" | "admin")}
-													className="px-3 py-1 bg-black/30 border border-gray-700/30 rounded-lg text-sm text-white focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none"
+													className="px-3 py-1 bg-black/5 border border-gray-700/30 rounded-lg text-sm text-white focus:ring-2 focus:ring-reggae-green focus:border-reggae-green/50 outline-none"
 													disabled={user.banned}
 												>
 													<option value="user">User</option>
@@ -551,7 +547,7 @@ export default function AdminUserManagement() {
 															showUserDetails: true,
 														}))
 													}
-													className="w-8 h-8 rounded-lg bg-black/30 border border-gray-700/30 flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/50 transition-all duration-300"
+													className="w-8 h-8 rounded-lg bg-black/5 border border-gray-700/30 flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/50 transition-all duration-300"
 													title="View Details"
 												>
 													<Eye size={14} />
@@ -597,7 +593,7 @@ export default function AdminUserManagement() {
 										}))
 									}
 									disabled={!state.pagination.hasPrev}
-									className="px-4 py-2 bg-black/30 border border-gray-700/30 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black/50 transition-all duration-300"
+									className="px-4 py-2 bg-black/5 border border-gray-700/30 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black/50 transition-all duration-300"
 								>
 									Previous
 								</button>
@@ -617,8 +613,8 @@ export default function AdminUserManagement() {
 											}
 											className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
 												page === state.pagination.page
-													? "bg-reggae-green text-white"
-													: "bg-black/30 border border-gray-700/30 text-white hover:bg-black/50"
+													? "bg-reggae-green/70 text-white"
+													: "bg-black/5 border border-gray-700/30 text-white hover:bg-black/50"
 											}`}
 										>
 											{page}
@@ -634,7 +630,7 @@ export default function AdminUserManagement() {
 										}))
 									}
 									disabled={!state.pagination.hasNext}
-									className="px-4 py-2 bg-black/30 border border-gray-700/30 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black/50 transition-all duration-300"
+									className="px-4 py-2 bg-black/5 border border-gray-700/30 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black/50 transition-all duration-300"
 								>
 									Next
 								</button>
@@ -659,7 +655,7 @@ export default function AdminUserManagement() {
 							initial={{ opacity: 0, scale: 0.9, y: 20 }}
 							animate={{ opacity: 1, scale: 1, y: 0 }}
 							exit={{ opacity: 0, scale: 0.9, y: 20 }}
-							className="fixed inset-4 z-50 bg-black/90 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-8 flex items-center justify-center"
+							className="fixed inset-4 z-50 bg-black/90 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-8 flex items-center justify-center"
 						>
 							<div className="w-full max-w-md text-center">
 								<div className="relative w-20 h-20 mx-auto mb-6">
@@ -733,7 +729,7 @@ export default function AdminUserManagement() {
 
 								<motion.button
 									onClick={() => setState((prev) => ({ ...prev, showUserDetails: false }))}
-									className="mt-8 w-full px-6 py-3 bg-reggae-green text-white rounded-xl hover:bg-green-600 transition-colors duration-300 font-medium"
+									className="mt-8 w-full px-6 py-2 bg-reggae-green/70 text-white rounded-xl hover:bg-green-600 transition-colors duration-300 font-medium"
 									whileHover={{ scale: 1.02 }}
 									whileTap={{ scale: 0.98 }}
 								>
@@ -760,7 +756,7 @@ export default function AdminUserManagement() {
 							initial={{ opacity: 0, scale: 0.9, y: 20 }}
 							animate={{ opacity: 1, scale: 1, y: 0 }}
 							exit={{ opacity: 0, scale: 0.9, y: 20 }}
-							className="fixed inset-4 z-50 bg-black/90 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-8 flex items-center justify-center"
+							className="fixed inset-4 z-50 bg-black/90 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-8 flex items-center justify-center"
 						>
 							<div className="w-full max-w-md">
 								<div className="text-center">
@@ -778,7 +774,7 @@ export default function AdminUserManagement() {
 											onClick={() =>
 												setState((prev) => ({ ...prev, showDeleteConfirm: false, deletingUser: null }))
 											}
-											className="flex-1 px-4 py-3 bg-black/30 border border-gray-700/30 text-white rounded-xl hover:bg-black/50 transition-colors duration-300"
+											className="flex-1 px-4 py-2 bg-black/5 border border-gray-700/30 text-white rounded-xl hover:bg-black/50 transition-colors duration-300"
 											whileHover={{ scale: 1.02 }}
 											whileTap={{ scale: 0.98 }}
 										>
@@ -786,7 +782,7 @@ export default function AdminUserManagement() {
 										</motion.button>
 										<motion.button
 											onClick={() => deleteUser(state.deletingUser!.clerkId)}
-											className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors duration-300"
+											className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors duration-300"
 											whileHover={{ scale: 1.02 }}
 											whileTap={{ scale: 0.98 }}
 										>

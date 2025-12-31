@@ -1,57 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { CheckCircle, Play, Music, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 
+const verifyPayment = async (reference: string) => {
+	const response = await fetch("/api/purchase", {
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ reference }),
+	});
+
+	const data = await response.json();
+
+	if (!response.ok || !data.success) {
+		throw new Error(data.error || "Payment verification failed");
+	}
+
+	return data.data;
+};
+
 export default function PaymentSuccess() {
 	const searchParams = useSearchParams();
-	const router = useRouter();
 	const reference = searchParams.get("reference");
-	const [status, setStatus] = useState<"verifying" | "success" | "failed">("verifying");
-	const [purchaseData, setPurchaseData] = useState<any>(null);
 
-	useEffect(() => {
-		if (reference) {
-			verifyPayment(reference);
-		} else {
-			setStatus("failed");
-		}
-	}, [reference]);
+	const {
+		data,
+		isLoading,
+		isError,
+		refetch,
+		isFetching,
+	} = useQuery({
+		queryKey: ["payment-verification", reference],
+		queryFn: () => verifyPayment(reference as string),
+		enabled: Boolean(reference),
+		retry: 1,
+	});
 
-	const verifyPayment = async (ref: string) => {
-		try {
-			const response = await fetch("/api/purchase", {
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ reference: ref }),
-			});
+	const status: "verifying" | "success" | "failed" = useMemo(() => {
+		if (!reference) return "failed";
+		if (isLoading || isFetching) return "verifying";
+		if (data) return "success";
+		if (isError) return "failed";
+		return "failed";
+	}, [reference, isLoading, isFetching, data, isError]);
 
-			const data = await response.json();
+	const purchaseData = data;
 
-			if (response.ok && data.success) {
-				setStatus("success");
-				setPurchaseData(data.data);
-			} else {
-				setStatus("failed");
-			}
-		} catch (error) {
-			console.error("Payment verification error:", error);
-			setStatus("failed");
-		}
-	};
-
-	// Verifying State
 	if (status === "verifying") {
 		return (
 			<div className="min-h-screen bg-black flex items-center justify-center px-4">
-				<motion.div
-					initial={{ opacity: 0, scale: 0.8 }}
-					animate={{ opacity: 1, scale: 1 }}
-					className="text-center"
-				>
+				<motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
 					<div className="relative mb-8">
 						<div className="w-24 h-24 mx-auto bg-black/20 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center">
 							<Loader2 className="w-12 h-12 text-reggae-green animate-spin" />
@@ -63,23 +65,17 @@ export default function PaymentSuccess() {
 
 					<p className="text-gray-400 mb-4">Please wait while we confirm your purchase</p>
 
-					<div className="text-sm text-gray-500">Reference: {reference}</div>
+					{reference && <div className="text-sm text-gray-500">Reference: {reference}</div>}
 				</motion.div>
 			</div>
 		);
 	}
 
-	// Success State
 	if (status === "success") {
 		return (
 			<div className="min-h-screen bg-black flex items-center justify-center px-4">
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					className="max-w-2xl w-full"
-				>
+				<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl w-full">
 					<div className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-8 text-center">
-						{/* Success Icon */}
 						<motion.div
 							initial={{ scale: 0 }}
 							animate={{ scale: 1 }}
@@ -92,12 +88,7 @@ export default function PaymentSuccess() {
 							<div className="absolute inset-0 bg-gradient-to-br from-reggae-green/30 to-reggae-yellow/20 rounded-full animate-pulse" />
 						</motion.div>
 
-						{/* Success Message */}
-						<motion.div
-							initial={{ opacity: 0, y: 10 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: 0.3 }}
-						>
+						<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
 							<h1 className="text-3xl font-bold text-white mb-4">Payment Successful! 🎉</h1>
 
 							<p className="text-gray-300 text-lg mb-6">
@@ -105,7 +96,6 @@ export default function PaymentSuccess() {
 							</p>
 						</motion.div>
 
-						{/* Purchase Details */}
 						{purchaseData?.item && (
 							<motion.div
 								initial={{ opacity: 0, y: 10 }}
@@ -123,12 +113,13 @@ export default function PaymentSuccess() {
 											{purchaseData.item.type === "album" ? "Album" : "Single"}
 										</p>
 									</div>
-									<div className="text-reggae-green font-semibold">${purchaseData.item.price}</div>
+									{purchaseData.item.price && (
+										<div className="text-reggae-green font-semibold">NGN {purchaseData.item.price}</div>
+									)}
 								</div>
 							</motion.div>
 						)}
 
-						{/* Action Buttons */}
 						<motion.div
 							initial={{ opacity: 0, y: 10 }}
 							animate={{ opacity: 1, y: 0 }}
@@ -141,10 +132,7 @@ export default function PaymentSuccess() {
 							>
 								<Play size={20} />
 								Go to My Music
-								<ArrowRight
-									size={20}
-									className="group-hover:translate-x-1 transition-transform duration-300"
-								/>
+								<ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
 							</Link>
 
 							<Link
@@ -156,7 +144,6 @@ export default function PaymentSuccess() {
 							</Link>
 						</motion.div>
 
-						{/* Auto Redirect Notice */}
 						<motion.p
 							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
@@ -171,12 +158,10 @@ export default function PaymentSuccess() {
 		);
 	}
 
-	// Failed State
 	return (
 		<div className="min-h-screen bg-black flex items-center justify-center px-4">
 			<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-md w-full">
 				<div className="bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-8 text-center">
-					{/* Failed Icon */}
 					<div className="w-24 h-24 mx-auto bg-red-900/20 backdrop-blur-md border border-red-500/30 rounded-full flex items-center justify-center mb-8">
 						<div className="w-12 h-12 rounded-full border-4 border-red-500 flex items-center justify-center">
 							<div className="w-6 h-0.5 bg-red-500 rounded rotate-45" />
@@ -192,8 +177,9 @@ export default function PaymentSuccess() {
 
 					<div className="space-y-4">
 						<button
-							onClick={() => verifyPayment(reference || "")}
-							className="w-full bg-reggae-green text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-600 transition-all duration-300"
+							onClick={() => (reference ? refetch() : undefined)}
+							className="w-full bg-reggae-green text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-600 transition-all duration-300 disabled:opacity-60"
+							disabled={!reference}
 						>
 							Try Again
 						</button>

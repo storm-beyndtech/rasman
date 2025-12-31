@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Download, Play, Music, Calendar } from "lucide-react";
 import Image from "next/image";
 import { ISong, IAlbum, IPurchase } from "@/lib/models";
-import { useAudio } from "@/context/AudioProvider";
+import { useAudio } from "@/provider/AudioProvider";
 
 interface PurchaseItemCardProps {
 	purchase: IPurchase & { item: ISong | IAlbum };
@@ -41,7 +41,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({ purchase, index, on
 			initial={{ opacity: 0, y: 20 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ delay: index * 0.05 }}
-			className={`group bg-black/10 backdrop-blur-md border border-white/20 rounded-xl p-6 hover:border-white/30 transition-all duration-500 hover:scale-[1.01] hover:shadow-xl ${
+			className={`group bg-black/5 backdrop-blur-md border border-white/20 rounded-xl p-6 hover:border-white/30 transition-all duration-500 hover:scale-[1.01] hover:shadow-xl ${
 				isCurrentSong ? "border-reggae-green/50 bg-reggae-green/5" : ""
 			}`}
 		>

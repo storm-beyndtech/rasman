@@ -14,6 +14,10 @@
 		-moz-osx-font-smoothing: grayscale;
 	}
 
+	input::placeholder {
+		opacity: 0.5;
+	}
+
 	/* Custom scrollbar */
 	::-webkit-scrollbar {
 		width: 2px;
@@ -39,6 +43,14 @@
 	}
 }
 
+.hide-scrollbar {
+	scrollbar-width: none;
+}
+
+.bio-name {
+	font-family: "Babylonica", sans-serif;
+}
+
 /* Component styles */
 @layer components {
 	/* Custom button variants */
@@ -54,28 +66,6 @@
 		@apply border-2 border-current text-current px-6 py-3 rounded-full font-semibold hover:bg-current hover:text-white transition-all duration-300;
 	}
 
-	/* Text utilities */
-	.text-gradient {
-		@apply bg-gradient-to-r from-reggae-green via-reggae-yellow to-reggae-red bg-clip-text text-transparent;
-	}
-
-	.text-shadow {
-		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	}
-
-	.text-shadow-lg {
-		text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-	}
-
-	/* Card components */
-	.card {
-		@apply bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300;
-	}
-
-	.card-gradient {
-		@apply bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300;
-	}
-
 	/* Input styles */
 	.input {
 		@apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reggae-green focus:border-transparent outline-none transition-all duration-300;
@@ -83,316 +73,5 @@
 
 	.input-rounded {
 		@apply w-full px-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-reggae-green focus:border-transparent outline-none transition-all duration-300;
-	}
-
-	/* Audio player slider customization */
-	.audio-slider {
-		@apply w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer;
-	}
-
-	.audio-slider::-webkit-slider-thumb {
-		appearance: none;
-		width: 16px;
-		height: 16px;
-		border-radius: 50%;
-		background: #22c55e;
-		cursor: pointer;
-		border: 2px solid #ffffff;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-	}
-
-	.audio-slider::-moz-range-thumb {
-		width: 16px;
-		height: 16px;
-		border-radius: 50%;
-		background: #22c55e;
-		cursor: pointer;
-		border: 2px solid #ffffff;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-	}
-
-	/* Loading animations */
-	.pulse-reggae {
-		animation: pulse-reggae 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-	}
-
-	@keyframes pulse-reggae {
-		0%,
-		100% {
-			opacity: 1;
-			transform: scale(1);
-		}
-		50% {
-			opacity: 0.7;
-			transform: scale(1.05);
-		}
-	}
-
-	/* Glassmorphism effect */
-	.glass {
-		@apply bg-white/10 backdrop-blur-md border border-white/20;
-	}
-
-	.glass-dark {
-		@apply bg-black/10 backdrop-blur-md border border-black/20;
-	}
-
-	/* Text truncation utilities */
-	.line-clamp-1 {
-		overflow: hidden;
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 1;
-	}
-
-	.line-clamp-2 {
-		overflow: hidden;
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 2;
-	}
-
-	.line-clamp-3 {
-		overflow: hidden;
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 3;
-	}
-}
-
-/* Utility styles */
-@layer utilities {
-	/* Animation utilities */
-	.animate-float {
-		animation: float 6s ease-in-out infinite;
-	}
-
-	@keyframes float {
-		0%,
-		100% {
-			transform: translateY(0px);
-		}
-		50% {
-			transform: translateY(-20px);
-		}
-	}
-
-	.animate-slide-in-left {
-		animation: slide-in-left 0.6s ease-out;
-	}
-
-	@keyframes slide-in-left {
-		from {
-			transform: translateX(-100%);
-			opacity: 0;
-		}
-		to {
-			transform: translateX(0);
-			opacity: 1;
-		}
-	}
-
-	.animate-slide-in-right {
-		animation: slide-in-right 0.6s ease-out;
-	}
-
-	@keyframes slide-in-right {
-		from {
-			transform: translateX(100%);
-			opacity: 0;
-		}
-		to {
-			transform: translateX(0);
-			opacity: 1;
-		}
-	}
-
-	.animate-scale-in {
-		animation: scale-in 0.4s ease-out;
-	}
-
-	@keyframes scale-in {
-		from {
-			transform: scale(0.9);
-			opacity: 0;
-		}
-		to {
-			transform: scale(1);
-			opacity: 1;
-		}
-	}
-
-	/* Hover effects */
-	.hover-lift {
-		@apply transition-transform duration-300 hover:-translate-y-1;
-	}
-
-	.hover-glow {
-		@apply transition-all duration-300;
-	}
-
-	.hover-glow:hover {
-		filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.4));
-	}
-
-	/* Focus effects */
-	.focus-ring {
-		@apply focus:outline-none focus:ring-2 focus:ring-reggae-green focus:ring-offset-2;
-	}
-
-	.focus-ring-dark {
-		@apply focus:outline-none focus:ring-2 focus:ring-reggae-green focus:ring-offset-2 focus:ring-offset-gray-900;
-	}
-
-	/* Gradient borders */
-	.border-gradient {
-		border: 2px solid;
-		border-image: linear-gradient(135deg, #22c55e 0%, #ffd700 50%, #dc143c 100%) 1;
-	}
-
-	/* Music-specific animations */
-	.animate-vinyl {
-		animation: vinyl-spin 3s linear infinite;
-	}
-
-	@keyframes vinyl-spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	.animate-equalizer {
-		animation: equalizer 1.5s ease-in-out infinite;
-	}
-
-	@keyframes equalizer {
-		0%,
-		100% {
-			height: 4px;
-		}
-		50% {
-			height: 20px;
-		}
-	}
-
-	/* Responsive utilities */
-	.container-responsive {
-		@apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
-	}
-
-	/* Typography utilities */
-	.text-balance {
-		text-wrap: balance;
-	}
-
-	/* Layout utilities */
-	.min-h-screen-minus-nav {
-		min-height: calc(100vh - 80px);
-	}
-
-	.min-h-screen-minus-nav-footer {
-		min-height: calc(100vh - 160px);
-	}
-}
-
-/* Print styles */
-@media print {
-	.no-print {
-		display: none !important;
-	}
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-	.bg-reggae-green {
-		background-color: #006400;
-	}
-
-	.text-reggae-green {
-		color: #006400;
-	}
-
-	.border-reggae-green {
-		border-color: #006400;
-	}
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-	*,
-	*::before,
-	*::after {
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-		transition-duration: 0.01ms !important;
-		scroll-behavior: auto !important;
-	}
-
-	.animate-slide-infinite {
-		animation: none;
-	}
-
-	.animate-parallax {
-		animation: none;
-	}
-}
-
-/* Dark mode support (for future implementation) */
-@media (prefers-color-scheme: dark) {
-	.dark-mode-auto {
-		background-color: #1a1a1a;
-		color: #ffffff;
-	}
-}
-
-/* Custom selection colors */
-::selection {
-	background-color: rgba(34, 197, 94, 0.3);
-	color: #1a1a1a;
-}
-
-::-moz-selection {
-	background-color: rgba(34, 197, 94, 0.3);
-	color: #1a1a1a;
-}
-
-/* Loading screen styles */
-.loading-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: linear-gradient(135deg, #228b22 0%, #ffd700 50%, #dc143c 100%);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 9999;
-}
-
-.loading-content {
-	text-align: center;
-	color: white;
-}
-
-.loading-spinner {
-	width: 60px;
-	height: 60px;
-	border: 4px solid rgba(255, 255, 255, 0.3);
-	border-top: 4px solid white;
-	border-radius: 50%;
-	animation: spin 1s linear infinite;
-	margin: 0 auto 20px;
-}
-
-@keyframes spin {
-	0% {
-		transform: rotate(0deg);
-	}
-	100% {
-		transform: rotate(360deg);
 	}
 }

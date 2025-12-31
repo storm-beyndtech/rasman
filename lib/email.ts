@@ -261,6 +261,53 @@ The Rasman Music Team
     }
   }
 
+  // Send contact form messages to admin and acknowledgement to the sender
+  static async sendContactMessage(message: { name: string; email: string; subject: string; content: string }): Promise<boolean> {
+    try {
+      const adminEmail = process.env.CONTACT_EMAIL || process.env.ADMIN_EMAIL || process.env.SMTP_USER;
+
+      if (!adminEmail) {
+        console.error('No contact email configured');
+        return false;
+      }
+
+      await transporter.sendMail({
+        from: `"Rasman Music" <${process.env.SMTP_USER}>`,
+        to: adminEmail,
+        replyTo: message.email,
+        subject: `New Contact Message: ${message.subject}`,
+        text: `From: ${message.name} <${message.email}>\n\n${message.content}`,
+        html: `
+          <h3>New Contact Message</h3>
+          <p><strong>Name:</strong> ${message.name}</p>
+          <p><strong>Email:</strong> ${message.email}</p>
+          <p><strong>Subject:</strong> ${message.subject}</p>
+          <p><strong>Message:</strong></p>
+          <p>${message.content.replace(/\n/g, "<br/>")}</p>
+        `,
+      });
+
+      await transporter.sendMail({
+        from: `"Rasman Music" <${process.env.SMTP_USER}>`,
+        to: message.email,
+        subject: 'We received your message',
+        text: `Hi ${message.name},\n\nThanks for reaching out. We received your message about "${message.subject}" and will reply soon.\n\nRegards,\nRasman Music`,
+        html: `
+          <p>Hi ${message.name},</p>
+          <p>Thanks for reaching out. We received your message about "<strong>${message.subject}</strong>" and will reply soon.</p>
+          <p>Message summary:</p>
+          <blockquote>${message.content.replace(/\n/g, "<br/>")}</blockquote>
+          <p>Regards,<br/>The Rasman Music Team</p>
+        `,
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error sending contact message:', error);
+      return false;
+    }
+  }
+
   // Test email configuration
   static async testEmailConfig(): Promise<boolean> {
     try {

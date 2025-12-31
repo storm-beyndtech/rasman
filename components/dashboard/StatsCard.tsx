@@ -33,7 +33,7 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, change, color
 			initial={{ opacity: 0, y: 20 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ delay: index * 0.1 }}
-			className={`relative group bg-black/10 backdrop-blur-md border rounded-xl p-6 hover:scale-[1.02] transition-all duration-500 hover:shadow-xl ${colorClasses[color]}`}
+			className={`relative group bg-stone-950/10 backdrop-blur-md border rounded-xl p-6 hover:scale-[1.02] transition-all duration-500 hover:shadow-xl ${colorClasses[color]}`}
 		>
 			{/* Background gradient */}
 			<div
@@ -43,7 +43,7 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, change, color
 			<div className="relative z-10">
 				<div className="flex items-center justify-between mb-4">
 					<div
-						className={`w-12 h-12 rounded-xl bg-black/20 backdrop-blur-sm border border-white/10 flex items-center justify-center ${iconColors[color]}`}
+						className={`w-12 h-12 rounded-xl bg-black/10 backdrop-blur-sm border border-white/10 flex items-center justify-center ${iconColors[color]}`}
 					>
 						{icon}
 					</div>
@@ -61,5 +61,3 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, change, color
 };
 
 export default StatsCard;
-
-

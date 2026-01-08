@@ -7,6 +7,7 @@ import { useUserPurchases } from "@/app/hooks/music";
 
 interface AudioState {
 	currentSong: ISong | null;
+	currentPurchaseId: string | null;
 	isPlaying: boolean;
 	isLoading: boolean;
 	currentTime: number;
@@ -20,7 +21,7 @@ interface AudioContextType {
 	purchases: IPurchase[];
 
 	// Actions
-	playSong: (song: ISong) => Promise<void>;
+	playSong: (song: ISong, purchaseId?: string) => Promise<void>;
 	pauseSong: () => void;
 	resumeSong: () => void;
 	seekTo: (time: number) => void;
@@ -50,6 +51,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const [audioState, setAudioState] = useState<AudioState>({
 		currentSong: null,
+		currentPurchaseId: null,
 		isPlaying: false,
 		isLoading: false,
 		currentTime: 0,
@@ -124,7 +126,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 	};
 
 	const playSong = useCallback(
-		async (song: ISong) => {
+		async (song: ISong, purchaseId?: string) => {
 			console.log(song);
 			if (!isSignedIn || !hasPurchased(song._id, "song")) {
 				console.error("Song not purchased or user not signed in");
@@ -137,16 +139,24 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 				// Get stream URL
 				const streamUrl = await getStreamUrl(song);
 
+				// Find purchaseId if not provided
+				let resolvedPurchaseId = purchaseId;
+				if (!resolvedPurchaseId) {
+					const purchase = purchases.find((p) => p.itemId === song._id && p.itemType === "song");
+					resolvedPurchaseId = purchase?._id || null;
+				}
+
 				// Stop current audio
 				if (audioRef.current) {
 					audioRef.current.pause();
 					audioRef.current.currentTime = 0;
 				}
 
-				// Set new song
+				// Set new song with purchaseId
 				setAudioState((prev) => ({
 					...prev,
 					currentSong: song,
+					currentPurchaseId: resolvedPurchaseId,
 					currentTime: 0,
 					duration: song.duration,
 				}));
@@ -163,7 +173,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 				setAudioState((prev) => ({ ...prev, isLoading: false, isPlaying: false }));
 			}
 		},
-		[isSignedIn, hasPurchased, audioState.volume],
+		[isSignedIn, hasPurchased, audioState.volume, purchases],
 	);
 
 	const pauseSong = useCallback(() => {
@@ -212,10 +222,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 			const data = await response.json();
 			const downloadLink = data.data.downloadLinks[0];
 
-			// Create download link
+			// Open download in new tab to avoid leaving the site
 			const link = document.createElement("a");
 			link.href = downloadLink.downloadUrl;
 			link.download = `${song.artist} - ${song.title}.mp3`;
+			link.target = "_blank";
+			link.rel = "noopener noreferrer";
 			document.body.appendChild(link);
 			link.click();
 			document.body.removeChild(link);
@@ -242,12 +254,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 			const data = await response.json();
 			const downloadLinks = data.data.downloadLinks;
 
-			// Download all songs in the album
+			// Download all songs in the album - open in new tab to avoid leaving the site
 			downloadLinks.forEach((song: any, index: number) => {
 				setTimeout(() => {
 					const link = document.createElement("a");
 					link.href = song.downloadUrl;
 					link.download = `${song.artist} - ${song.title}.mp3`;
+					link.target = "_blank";
+					link.rel = "noopener noreferrer";
 					document.body.appendChild(link);
 					link.click();
 					document.body.removeChild(link);

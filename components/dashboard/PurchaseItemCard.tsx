@@ -25,7 +25,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({ purchase, index }) 
 				resumeSong();
 			}
 		} else {
-			playSong(purchase.item as ISong);
+			playSong(purchase.item as ISong, purchase._id);
 		}
 	};
 

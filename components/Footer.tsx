@@ -4,9 +4,25 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { useState, useEffect } from "react";
 
 export default function Footer() {
 	const pathname = usePathname();
+	const [repeatCount, setRepeatCount] = useState(2);
+
+	// Handle window width on client side to avoid hydration issues
+	useEffect(() => {
+		const updateRepeatCount = () => {
+			if (typeof window !== "undefined") {
+				setRepeatCount(Math.ceil(window.innerWidth / 1713) + 2);
+			}
+		};
+
+		updateRepeatCount();
+		window.addEventListener("resize", updateRepeatCount);
+
+		return () => window.removeEventListener("resize", updateRepeatCount);
+	}, []);
 
 	// Navigation links
 	const navLinks = [
@@ -64,7 +80,7 @@ export default function Footer() {
 					className="flex w-fit h-full "
 				>
 					<div className={`flex gap-20`}>
-						{Array.from({ length: Math.ceil(window.innerWidth / 1713) + 2 }).map((_, i) => (
+						{Array.from({ length: repeatCount }).map((_, i) => (
 							<div key={i} className="w-[1713px] flex-shrink-0">
 								<Image src="/images/Footer-Name.svg" alt="Rasman" width={1713} height={125} />
 							</div>

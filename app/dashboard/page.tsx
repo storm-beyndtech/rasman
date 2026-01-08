@@ -1,7 +1,7 @@
 "use client";
 
 import type { IAlbum, IPurchase, ISong } from "@/lib/models";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,7 +13,7 @@ import PurchaseItemCard from "@/components/dashboard/PurchaseItemCard";
 import { useToast } from "@/provider/ToastProvider";
 import { useUserPurchases } from "../hooks/music";
 
-const DashboardPage: React.FC = () => {
+const DashboardContent: React.FC = () => {
 	const { user, isLoaded } = useUser();
 	const { showToast } = useToast();
 	const searchParams = useSearchParams();
@@ -253,6 +253,34 @@ const DashboardPage: React.FC = () => {
 				</AnimatePresence>
 			</div>
 		</div>
+	);
+};
+
+const DashboardPage: React.FC = () => {
+	return (
+		<Suspense
+			fallback={
+				<div className="min-h-screen bg-bg flex items-center justify-center">
+					<div
+						className="fixed inset-0 opacity-50 pointer-events-none"
+						style={{
+							backgroundImage: `
+								linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+								linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)
+							`,
+							backgroundSize: "80px 80px",
+							backgroundAttachment: "fixed",
+						}}
+					/>
+					<div className="text-center">
+						<Loader2 className="w-12 h-12 text-reggae-green animate-spin mx-auto mb-4" />
+						<p className="text-gray-400">Loading dashboard...</p>
+					</div>
+				</div>
+			}
+		>
+			<DashboardContent />
+		</Suspense>
 	);
 };
 

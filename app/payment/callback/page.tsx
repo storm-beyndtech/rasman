@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -23,7 +23,7 @@ const verifyPayment = async (reference: string) => {
 	return data.data;
 };
 
-export default function PaymentSuccess() {
+function PaymentSuccessContent() {
 	const searchParams = useSearchParams();
 	const reference = searchParams.get("reference");
 
@@ -194,5 +194,22 @@ export default function PaymentSuccess() {
 				</div>
 			</motion.div>
 		</div>
+	);
+}
+
+export default function PaymentSuccess() {
+	return (
+		<Suspense
+			fallback={
+				<div className="min-h-screen bg-black flex items-center justify-center px-4">
+					<div className="text-center">
+						<Loader2 className="w-12 h-12 text-reggae-green animate-spin mx-auto mb-4" />
+						<p className="text-gray-400">Loading payment details...</p>
+					</div>
+				</div>
+			}
+		>
+			<PaymentSuccessContent />
+		</Suspense>
 	);
 }

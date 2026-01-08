@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Music, Award, Heart, Globe, Users, Mic, Guitar, Star, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,16 @@ import Image from "next/image";
 const BiographyPage: React.FC = () => {
 	const { scrollY } = useScroll();
 	const router = useRouter();
+	const [isMobile, setIsMobile] = useState(false);
+
+	useEffect(() => {
+		const checkMobile = () => {
+			setIsMobile(window.innerWidth < 768);
+		};
+		checkMobile();
+		window.addEventListener("resize", checkMobile);
+		return () => window.removeEventListener("resize", checkMobile);
+	}, []);
 	const achievements = [
 		{
 			icon: <Music size={24} strokeWidth={1.2} />,
@@ -203,7 +213,7 @@ const BiographyPage: React.FC = () => {
 						<motion.div variants={fadeInVariants} className="relative col-span-2">
 							<motion.div
 								className="w-full"
-								style={{ y: useTransform(scrollY, [0, 1000], [0, window.innerWidth < 768 ? -100 : -500]) }}
+								style={{ y: useTransform(scrollY, [0, 1000], [0, isMobile ? -100 : -500]) }}
 							>
 								<Image src="/images/Album-Cover.svg" alt="name" width={500} height={500} priority />
 							</motion.div>

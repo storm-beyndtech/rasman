@@ -140,7 +140,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 				const streamUrl = await getStreamUrl(song);
 
 				// Find purchaseId if not provided
-				let resolvedPurchaseId = purchaseId;
+				let resolvedPurchaseId: any = purchaseId;
 				if (!resolvedPurchaseId) {
 					const purchase = purchases.find((p) => p.itemId === song._id && p.itemType === "song");
 					resolvedPurchaseId = purchase?._id || null;

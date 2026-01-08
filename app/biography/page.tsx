@@ -201,7 +201,10 @@ const BiographyPage: React.FC = () => {
 
 						{/* Hero Visual */}
 						<motion.div variants={fadeInVariants} className="relative col-span-2">
-							<motion.div className="w-full" style={{ y: useTransform(scrollY, [0, 1000], [0, -500]) }}>
+							<motion.div
+								className="w-full"
+								style={{ y: useTransform(scrollY, [0, 1000], [0, window.innerWidth < 768 ? -100 : -500]) }}
+							>
 								<Image src="/images/Album-Cover.svg" alt="name" width={500} height={500} priority />
 							</motion.div>
 						</motion.div>

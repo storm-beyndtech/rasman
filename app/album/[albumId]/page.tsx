@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { IAlbum, ISong } from "@/lib/models";
 import PurchaseButton from "@/components/PurchaseButton";
-import { useAudio } from "@/context/AudioProvider";
+import { useAudio } from "@/provider/AudioProvider";
 
 interface AlbumDetailPageProps {
 	album: IAlbum;

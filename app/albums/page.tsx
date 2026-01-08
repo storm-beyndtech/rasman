@@ -119,12 +119,13 @@ const AlbumsPage: React.FC = () => {
 					variants={fadeInVariants}
 					className="text-center mb-12"
 				>
-					<h1 className="text-5xl md:text-7xl font-bold font-serif text-white mb-4">
-						Reggae <span className="text-reggae-yellow">Albums</span>
-					</h1>
-					<p className="text-xl text-gray-300 max-w-3xl mx-auto">
-						Complete collections of conscious music that tell stories of love, unity, and spiritual awakening
+					<p className="text-sm text-gray-300 font-light max-w-xl mx-auto">
+						<span className="text-emerald-400 font-semibold">Stories </span>
+						of love, unity, and spiritual awakening
 					</p>
+					<h1 className="w-fit mx-auto text-4xl font-semibold font-montserrat bg-clip-text text-transparent bg-gradient-to-r from-white/50 via-white to-white/30 mt-2">
+						Album Collections
+					</h1>
 				</motion.div>
 
 				{/* Search and Controls */}
@@ -318,7 +319,7 @@ const AlbumsPage: React.FC = () => {
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: index * 0.05 }}
-									className={viewMode === "list" ? "w-full" : ""}
+									className={viewMode === "list" ? "w-full" : "mx-auto"}
 								>
 									{viewMode === "grid" ? (
 										<AlbumCard album={album} index={index} />

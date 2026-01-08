@@ -339,7 +339,7 @@ const SongsPage: React.FC = () => {
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: index * 0.05 }}
-									className={viewMode === "list" ? "w-full" : ""}
+									className={viewMode === "list" ? "w-full" : "mx-auto"}
 								>
 									{viewMode === "grid" ? (
 										<SongCard song={song} index={index} />

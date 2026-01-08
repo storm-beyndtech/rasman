@@ -67,57 +67,6 @@ const DashboardPage: React.FC = () => {
 		[purchases, filter, searchQuery],
 	);
 
-	const handleDownload = async (purchase: IPurchase & { item: ISong | IAlbum }) => {
-		try {
-			showToast("Preparing download...", "info");
-
-			const response = await fetch(`/api/download/${purchase.itemId}`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					itemType: purchase.itemType,
-					purchaseId: purchase._id,
-				}),
-			});
-
-			const result = await response.json();
-
-			if (!result.success) {
-				throw new Error(result.error || "Download failed");
-			}
-
-			if (purchase.itemType === "song" && result.data.downloadLinks[0]) {
-				const link = document.createElement("a");
-				link.href = result.data.downloadLinks[0].downloadUrl;
-				link.download = `${purchase.item.artist} - ${purchase.item.title}.mp3`;
-				document.body.appendChild(link);
-				link.click();
-				document.body.removeChild(link);
-				showToast("Download started!", "success");
-			}
-
-			if (purchase.itemType === "album" && result.data.downloadLinks) {
-				result.data.downloadLinks.forEach((song: any, index: number) => {
-					setTimeout(() => {
-						const link = document.createElement("a");
-						link.href = song.downloadUrl;
-						link.download = `${song.artist} - ${song.title}.mp3`;
-						document.body.appendChild(link);
-						link.click();
-						document.body.removeChild(link);
-					}, index * 1000);
-				});
-				showToast("Album download started!", "success");
-			}
-		} catch (downloadError) {
-			console.error("Download error:", downloadError);
-			showToast(
-				downloadError instanceof Error ? downloadError.message : "Download failed. Please try again.",
-				"error",
-			);
-		}
-	};
-
 	const formatCurrency = (amount: number): string => `NGN ${amount.toLocaleString()}`;
 
 	const isInitialLoading = isLoading && !data;
@@ -297,7 +246,6 @@ const DashboardPage: React.FC = () => {
 									key={purchase._id}
 									purchase={purchase}
 									index={index}
-									onDownload={handleDownload}
 								/>
 							))}
 						</motion.div>

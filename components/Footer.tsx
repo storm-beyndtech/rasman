@@ -20,7 +20,7 @@ export default function Footer() {
 	return (
 		<footer className="relative bg-[#0B0600] overflow-hidden">
 			{/* Navigation Links Row */}
-			<div className="relative z-10 px-8 py-8">
+			<div className="relative z-10 sm:px-8 py-8">
 				<div className="container mx-auto">
 					<div className="flex justify-between items-center">
 						{navLinks.map((link, index) => (
@@ -29,25 +29,18 @@ export default function Footer() {
 								initial={{ opacity: 0, y: 20 }}
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: index * 0.1 }}
+								className={`${link.isLogo ? "hidden sm:block" : ""} max-sm:px-4`}
 							>
 								<Link
 									href={link.href}
 									className={`relative group transition-all duration-300 font-bold font-montserrat ${
 										pathname === link.href
 											? "text-reggae-green"
-											: "text-reggae-green/60 hover:text-reggae-yellow/50"
-									}`}
+											: "text-reggae-green/80 hover:text-reggae-yellow/50"
+									} `}
 								>
 									{link.isLogo ? (
-										<>
-											<Image
-												src="/images/logo.svg"
-												alt="Logo"
-												width={70}
-												height={30}
-												className="w-18 h-auto"
-											/>
-										</>
+										<Image src="/images/logo.svg" alt="Logo" width={70} height={30} className="w-18 h-auto" />
 									) : (
 										link.label
 									)}
@@ -71,15 +64,9 @@ export default function Footer() {
 					className="flex w-fit h-full "
 				>
 					<div className={`flex gap-20`}>
-						{/* Duplicate set for seamless loop */}
-						{Array.from({ length: 5 }).map((_, i) => (
+						{Array.from({ length: Math.ceil(window.innerWidth / 1713) + 2 }).map((_, i) => (
 							<div key={i} className="w-[1713px] flex-shrink-0">
-								<Image
-									src="/images/Footer-Name.svg"
-									alt="Rasman"
-									width={1713}
-									height={125}
-								/>
+								<Image src="/images/Footer-Name.svg" alt="Rasman" width={1713} height={125} />
 							</div>
 						))}
 					</div>

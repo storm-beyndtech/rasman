@@ -60,7 +60,7 @@ const FeaturedMusic: React.FC = () => {
 			</div>
 
 			{/* Mobile Tabs */}
-			<div className="lg:hidden mb-12">
+			<div className="lg:hidden pt-80">
 				<div className="flex justify-center">
 					<div className="bg-black/30 backdrop-blur-md rounded-full p-2 border border-white/20">
 						<div className="flex gap-2">
@@ -89,7 +89,7 @@ const FeaturedMusic: React.FC = () => {
 			</div>
 
 			{/* Content */}
-			<div className="container mx-auto px-4 pt-52">
+			<div className="container mx-auto px-4 pt-20">
 				{/* Mobile Tabbed Content */}
 				<div className="lg:hidden">
 					<AnimatePresence mode="wait">

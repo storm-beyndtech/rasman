@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Download, Play, Music, Calendar } from "lucide-react";
+import { Download, Play, Music, Calendar, Pause } from "lucide-react";
 import Image from "next/image";
 import { ISong, IAlbum, IPurchase } from "@/lib/models";
 import { useAudio } from "@/provider/AudioProvider";
@@ -10,13 +10,24 @@ import { useAudio } from "@/provider/AudioProvider";
 interface PurchaseItemCardProps {
 	purchase: IPurchase & { item: ISong | IAlbum };
 	index: number;
-	onDownload: (purchase: IPurchase & { item: ISong | IAlbum }) => void;
 }
 
-const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({ purchase, index, onDownload }) => {
-	const { playSong, audioState } = useAudio();
+const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({ purchase, index }) => {
+	const { playSong, pauseSong, resumeSong, downloadSong, audioState } = useAudio();
 	const isCurrentSong = purchase.itemType === "song" && audioState.currentSong?._id === purchase.item._id;
 	const isPlaying = isCurrentSong && audioState.isPlaying;
+
+	const handlePlayPause = () => {
+		if (isCurrentSong) {
+			if (isPlaying) {
+				pauseSong();
+			} else {
+				resumeSong();
+			}
+		} else {
+			playSong(purchase.item as ISong);
+		}
+	};
 
 	const formatCurrency = (amount: number): string => {
 		return `₦${amount.toLocaleString()}`;
@@ -28,12 +39,6 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({ purchase, index, on
 			month: "short",
 			day: "numeric",
 		});
-	};
-
-	const handlePlay = () => {
-		if (purchase.itemType === "song") {
-			playSong(purchase.item as ISong);
-		}
 	};
 
 	return (
@@ -103,7 +108,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({ purchase, index, on
 						{/* Play Button (Songs only) */}
 						{purchase.itemType === "song" && (
 							<motion.button
-								onClick={handlePlay}
+								onClick={handlePlayPause}
 								className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
 									isPlaying
 										? "bg-reggae-green text-white"
@@ -113,13 +118,13 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({ purchase, index, on
 								whileTap={{ scale: 0.95 }}
 								title={isPlaying ? "Playing" : "Play"}
 							>
-								<Play size={16} className={isPlaying ? "" : "ml-0.5"} />
+								{isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
 							</motion.button>
 						)}
 
 						{/* Download Button */}
 						<motion.button
-							onClick={() => onDownload(purchase)}
+							onClick={() => downloadSong(purchase.item as ISong, purchase._id)}
 							className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-reggae-green/20 hover:text-reggae-green hover:border-reggae-green/30 transition-all duration-300"
 							whileHover={{ scale: 1.05 }}
 							whileTap={{ scale: 0.95 }}

@@ -27,6 +27,8 @@ export async function POST(request: NextRequest) {
 
 		if (uploadType === "song") {
 			return await handleSongUpload(formData, userId);
+		} else if (uploadType === "song-direct") {
+			return await handleSongMetadataOnly(formData, userId);
 		} else if (uploadType === "album-from-songs") {
 			return await handleAlbumFromSongs(formData, userId);
 		} else if (uploadType === "album") {
@@ -113,6 +115,58 @@ async function handleSongUpload(formData: FormData, userId: string) {
 	} catch (error) {
 		console.error("Error uploading song:", error);
 		return NextResponse.json({ success: false, error: "Failed to upload song" }, { status: 500 });
+	}
+}
+
+// Handle single song upload with direct S3 upload (metadata only)
+async function handleSongMetadataOnly(formData: FormData, userId: string) {
+	try {
+		// Extract form data
+		const title = formData.get("title") as string;
+		const artist = formData.get("artist") as string;
+		const genre = formData.get("genre") as string;
+		const duration = parseInt(formData.get("duration") as string);
+		const price = parseFloat(formData.get("price") as string);
+		const featured = formData.get("featured") === "true";
+		const audioFileKey = formData.get("audioFileKey") as string;
+		const coverFileKey = formData.get("coverFileKey") as string;
+
+		// Validate required fields
+		if (!title || !audioFileKey || !coverFileKey) {
+			return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+		}
+
+		// Create song in database (files already uploaded to S3)
+		const song = new Song({
+			title,
+			artist,
+			genre,
+			duration,
+			price,
+			featured,
+			fileKey: audioFileKey,
+			coverArtUrl: coverFileKey,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		});
+
+		await song.save();
+
+		return NextResponse.json(
+			{
+				success: true,
+				message: "Song uploaded successfully",
+				data: {
+					songId: song._id,
+					title: song.title,
+					artist: song.artist,
+				},
+			},
+			{ status: 201 },
+		);
+	} catch (error) {
+		console.error("Error saving song metadata:", error);
+		return NextResponse.json({ success: false, error: "Failed to save song metadata" }, { status: 500 });
 	}
 }
 

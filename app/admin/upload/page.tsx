@@ -140,7 +140,11 @@ const FileUpload: React.FC<{
 				{file ? (
 					<div>
 						<p className="text-sm text-white font-medium">{file.name}</p>
-						<p className="text-xs text-gray-400 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+						<p className={`text-xs mt-1 ${file.size > 4 * 1024 * 1024 ? "text-reggae-green font-semibold" : "text-gray-400"}`}>
+							{(file.size / 1024 / 1024).toFixed(2)} MB
+							{file.size > 4 * 1024 * 1024 && " • Direct S3 upload"}
+							{file.size <= 4 * 1024 * 1024 && " • Standard upload"}
+						</p>
 					</div>
 				) : (
 					<>
@@ -148,7 +152,10 @@ const FileUpload: React.FC<{
 							Click to upload {type === "audio" ? "audio file" : "cover art"}
 						</p>
 						<p className="text-xs text-gray-500">
-							{type === "audio" ? "MP3, WAV, FLAC up to 50MB" : "JPG, PNG up to 5MB"}
+							{type === "audio" ? "MP3, WAV, FLAC (any size)" : "JPG, PNG (any size)"}
+						</p>
+						<p className="text-xs text-reggae-green/60 mt-1">
+							Files &gt; 4MB use direct S3 upload
 						</p>
 					</>
 				)}
@@ -238,6 +245,136 @@ export default function AdminUploadForm() {
 		updateSongForm({ [type === "audio" ? "audioFile" : "coverFile"]: file });
 	};
 
+	// Direct S3 upload method (for large files)
+	const uploadDirectToS3 = async () => {
+		const audioFile = state.songForm.audioFile!;
+		const coverFile = state.songForm.coverFile!;
+
+		setState((prev) => ({ ...prev, uploadProgress: 10 }));
+
+		// Step 1: Get presigned URLs for both files
+		const audioUrlResponse = await fetch(
+			`/api/admin/upload?fileType=audio&fileName=${encodeURIComponent(audioFile.name)}`
+		);
+		const coverUrlResponse = await fetch(
+			`/api/admin/upload?fileType=image&fileName=${encodeURIComponent(coverFile.name)}`
+		);
+
+		if (!audioUrlResponse.ok || !coverUrlResponse.ok) {
+			throw new Error("Failed to get upload URLs");
+		}
+
+		const audioUrlData = await audioUrlResponse.json();
+		const coverUrlData = await coverUrlResponse.json();
+
+		setState((prev) => ({ ...prev, uploadProgress: 30 }));
+
+		// Step 2: Upload audio file directly to S3
+		const audioUploadResponse = await fetch(audioUrlData.data.uploadUrl, {
+			method: "PUT",
+			body: audioFile,
+			headers: {
+				"Content-Type": audioFile.type || "audio/mpeg",
+			},
+		});
+
+		if (!audioUploadResponse.ok) {
+			throw new Error("Failed to upload audio file to S3");
+		}
+
+		setState((prev) => ({ ...prev, uploadProgress: 60 }));
+
+		// Step 3: Upload cover file directly to S3
+		const coverUploadResponse = await fetch(coverUrlData.data.uploadUrl, {
+			method: "PUT",
+			body: coverFile,
+			headers: {
+				"Content-Type": coverFile.type || "image/jpeg",
+			},
+		});
+
+		if (!coverUploadResponse.ok) {
+			throw new Error("Failed to upload cover image to S3");
+		}
+
+		setState((prev) => ({ ...prev, uploadProgress: 80 }));
+
+		// Step 4: Save metadata to database
+		const formData = new FormData();
+		formData.append("type", "song-direct");
+		formData.append("title", state.songForm.title);
+		formData.append("artist", state.songForm.artist);
+		formData.append("genre", state.songForm.genre);
+		formData.append("duration", state.songForm.duration.toString());
+		formData.append("price", state.songForm.price.toString());
+		formData.append("featured", state.songForm.featured.toString());
+		formData.append("audioFileKey", audioUrlData.data.fileKey);
+		formData.append("coverFileKey", coverUrlData.data.fileKey);
+
+		const metadataResponse = await fetch("/api/admin/upload", {
+			method: "POST",
+			body: formData,
+		});
+
+		const result = await metadataResponse.json();
+
+		if (!result.success) {
+			throw new Error(result.error || "Failed to save metadata");
+		}
+
+		setState((prev) => ({ ...prev, uploadProgress: 100 }));
+		return result;
+	};
+
+	// Traditional upload method (for small files)
+	const uploadTraditional = async () => {
+		const formData = new FormData();
+		formData.append("type", "song");
+		formData.append("title", state.songForm.title);
+		formData.append("artist", state.songForm.artist);
+		formData.append("genre", state.songForm.genre);
+		formData.append("duration", state.songForm.duration.toString());
+		formData.append("price", state.songForm.price.toString());
+		formData.append("featured", state.songForm.featured.toString());
+		formData.append("audioFile", state.songForm.audioFile!);
+		formData.append("coverFile", state.songForm.coverFile!);
+
+		const progressInterval = setInterval(() => {
+			setState((prev) => ({
+				...prev,
+				uploadProgress: Math.min(prev.uploadProgress + 10, 90),
+			}));
+		}, 200);
+
+		const response = await fetch("/api/admin/upload", {
+			method: "POST",
+			body: formData,
+		});
+
+		clearInterval(progressInterval);
+		setState((prev) => ({ ...prev, uploadProgress: 100 }));
+
+		// Check if response is JSON before parsing
+		const contentType = response.headers.get("content-type");
+		if (!contentType || !contentType.includes("application/json")) {
+			const text = await response.text();
+			if (response.status === 413) {
+				throw new Error(
+					"File too large. Using direct upload method automatically..."
+				);
+			}
+			throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+
+		if (!result.success) {
+			throw new Error(result.error || "Upload failed");
+		}
+
+		return result;
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
@@ -259,36 +396,19 @@ export default function AdminUploadForm() {
 		}));
 
 		try {
-			const formData = new FormData();
-			formData.append("type", "song");
-			formData.append("title", state.songForm.title);
-			formData.append("artist", state.songForm.artist);
-			formData.append("genre", state.songForm.genre);
-			formData.append("duration", state.songForm.duration.toString());
-			formData.append("price", state.songForm.price.toString());
-			formData.append("featured", state.songForm.featured.toString());
-			formData.append("audioFile", state.songForm.audioFile!);
-			formData.append("coverFile", state.songForm.coverFile!);
+			// Determine which upload method to use based on file size
+			const DIRECT_UPLOAD_THRESHOLD = 4 * 1024 * 1024; // 4MB
+			const audioSize = state.songForm.audioFile.size;
+			const coverSize = state.songForm.coverFile.size;
+			const useDirectUpload = audioSize > DIRECT_UPLOAD_THRESHOLD || coverSize > DIRECT_UPLOAD_THRESHOLD;
 
-			const progressInterval = setInterval(() => {
-				setState((prev) => ({
-					...prev,
-					uploadProgress: Math.min(prev.uploadProgress + 10, 90),
-				}));
-			}, 200);
-
-			const response = await fetch("/api/admin/upload", {
-				method: "POST",
-				body: formData,
-			});
-
-			clearInterval(progressInterval);
-			setState((prev) => ({ ...prev, uploadProgress: 100 }));
-
-			const result = await response.json();
-
-			if (!result.success) {
-				throw new Error(result.error || "Upload failed");
+			let result;
+			if (useDirectUpload) {
+				console.log("Using direct S3 upload (files > 4MB)");
+				result = await uploadDirectToS3();
+			} else {
+				console.log("Using traditional upload (files < 4MB)");
+				result = await uploadTraditional();
 			}
 
 			setState((prev) => ({ ...prev, uploadStatus: "success", uploading: false }));

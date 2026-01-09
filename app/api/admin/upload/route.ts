@@ -26,8 +26,11 @@ export async function POST(request: NextRequest) {
 		const uploadType = formData.get("type") as string;
 
 		if (uploadType === "song") {
+			// Legacy method: Upload through Vercel (4.5MB limit)
+			// Use "song-direct" for unlimited file sizes
 			return await handleSongUpload(formData, userId);
 		} else if (uploadType === "song-direct") {
+			// Preferred method: Direct S3 upload (no size limit)
 			return await handleSongMetadataOnly(formData, userId);
 		} else if (uploadType === "album-from-songs") {
 			return await handleAlbumFromSongs(formData, userId);

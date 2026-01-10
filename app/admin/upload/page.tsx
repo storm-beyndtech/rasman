@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload, Music, ImageIcon, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { upload } from "@vercel/blob/client";
 
 interface SongFormState {
 	title: string;
@@ -21,6 +22,7 @@ interface UploadFormState {
 	uploadProgress: number;
 	uploadStatus: "idle" | "uploading" | "success" | "error";
 	errorMessage: string;
+	uploadMethod: "direct" | "traditional";
 }
 
 const SongForm: React.FC<{
@@ -175,7 +177,7 @@ const FileUpload: React.FC<{
 							Click to upload {type === "audio" ? "audio file" : "cover art"}
 						</p>
 						<p className="text-xs text-gray-500">
-							{type === "audio" ? "MP3, WAV, FLAC (any size)" : "JPG, PNG (any size)"}
+							{type === "audio" ? "MP3, WAV, FLAC, M4A, AAC" : "JPG, PNG, WebP"}
 						</p>
 					</>
 				)}
@@ -252,6 +254,7 @@ export default function AdminUploadForm() {
 		uploadProgress: 0,
 		uploadStatus: "idle",
 		errorMessage: "",
+		uploadMethod: "direct",
 	});
 
 	const updateSongForm = (updates: Partial<SongFormState>) => {
@@ -265,15 +268,124 @@ export default function AdminUploadForm() {
 		updateSongForm({ [type === "audio" ? "audioFile" : "coverFile"]: file });
 	};
 
-	// Upload files to S3 with progress tracking
-	const uploadFileToS3 = async (uploadUrl: string, file: File, contentType: string) => {
-		return fetch(uploadUrl, {
-			method: "PUT",
-			body: file,
-			headers: {
-				"Content-Type": contentType,
-			},
-		});
+	// Direct Vercel Blob upload (no size limit)
+	const handleDirectUpload = async () => {
+		const audioFile = state.songForm.audioFile!;
+		const coverFile = state.songForm.coverFile!;
+
+		try {
+			// Step 1: Upload files directly to Vercel Blob (10-70% progress)
+			setState((prev) => ({ ...prev, uploadProgress: 10 }));
+
+			// Upload audio file using client upload API
+			const audioBlob = await upload(audioFile.name, audioFile, {
+				access: "public",
+				handleUploadUrl: "/api/admin/blob-upload",
+			});
+
+			console.log("Audio uploaded to Vercel Blob:", audioBlob.url);
+			setState((prev) => ({ ...prev, uploadProgress: 40 }));
+
+			// Upload cover file using client upload API
+			const coverBlob = await upload(coverFile.name, coverFile, {
+				access: "public",
+				handleUploadUrl: "/api/admin/blob-upload",
+			});
+
+			console.log("Cover uploaded to Vercel Blob:", coverBlob.url);
+			setState((prev) => ({ ...prev, uploadProgress: 70 }));
+
+			// Step 2: Save metadata to database (70-100% progress)
+			const formData = new FormData();
+			formData.append("type", "song-direct");
+			formData.append("title", state.songForm.title);
+			formData.append("artist", state.songForm.artist);
+			formData.append("genre", state.songForm.genre);
+			formData.append("duration", state.songForm.duration.toString());
+			formData.append("price", state.songForm.price.toString());
+			formData.append("featured", state.songForm.featured.toString());
+			formData.append("audioFileKey", audioBlob.url);
+			formData.append("coverFileKey", coverBlob.url);
+
+			const metadataResponse = await fetch("/api/admin/upload", {
+				method: "POST",
+				body: formData,
+			});
+
+			if (!metadataResponse.ok) {
+				const errorText = await metadataResponse.text();
+				console.error("Metadata save failed:", errorText);
+				throw new Error("Failed to save song metadata");
+			}
+
+			const result = await metadataResponse.json();
+
+			if (!result.success) {
+				throw new Error(result.error || "Failed to save song");
+			}
+
+			console.log("Upload complete!");
+			setState((prev) => ({ ...prev, uploadProgress: 100 }));
+			return result;
+		} catch (error) {
+			console.error("Direct upload error:", error);
+			throw error;
+		}
+	};
+
+	// Traditional upload (4.5MB limit)
+	const handleTraditionalUpload = async () => {
+		const formData = new FormData();
+		formData.append("type", "song");
+		formData.append("title", state.songForm.title);
+		formData.append("artist", state.songForm.artist);
+		formData.append("genre", state.songForm.genre);
+		formData.append("duration", state.songForm.duration.toString());
+		formData.append("price", state.songForm.price.toString());
+		formData.append("featured", state.songForm.featured.toString());
+		formData.append("audioFile", state.songForm.audioFile!);
+		formData.append("coverFile", state.songForm.coverFile!);
+
+		const progressInterval = setInterval(() => {
+			setState((prev) => ({
+				...prev,
+				uploadProgress: Math.min(prev.uploadProgress + 10, 90),
+			}));
+		}, 200);
+
+		try {
+			const response = await fetch("/api/admin/upload", {
+				method: "POST",
+				body: formData,
+			});
+
+			clearInterval(progressInterval);
+			setState((prev) => ({ ...prev, uploadProgress: 100 }));
+
+			// Check if response is JSON before parsing
+			const contentType = response.headers.get("content-type");
+			if (!contentType || !contentType.includes("application/json")) {
+				const text = await response.text();
+				console.error("Non-JSON response:", text.substring(0, 200));
+				if (response.status === 413) {
+					throw new Error(
+						"Files too large (max 4.5MB). Switch to Direct Upload method."
+					);
+				}
+				throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+			}
+
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(result.error || "Upload failed");
+			}
+
+			return result;
+		} catch (error) {
+			clearInterval(progressInterval);
+			throw error;
+		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -297,81 +409,16 @@ export default function AdminUploadForm() {
 		}));
 
 		try {
-			const audioFile = state.songForm.audioFile;
-			const coverFile = state.songForm.coverFile;
+			console.log(`Using ${state.uploadMethod} upload method`);
 
-			// Step 1: Get presigned URLs (10% progress)
-			setState((prev) => ({ ...prev, uploadProgress: 10 }));
-
-			const [audioUrlResponse, coverUrlResponse] = await Promise.all([
-				fetch(`/api/admin/upload?fileType=audio&fileName=${encodeURIComponent(audioFile.name)}`),
-				fetch(`/api/admin/upload?fileType=image&fileName=${encodeURIComponent(coverFile.name)}`),
-			]);
-
-			if (!audioUrlResponse.ok || !coverUrlResponse.ok) {
-				throw new Error("Failed to get upload URLs from server");
+			// Use the selected upload method
+			if (state.uploadMethod === "direct") {
+				await handleDirectUpload();
+			} else {
+				await handleTraditionalUpload();
 			}
 
-			const [audioUrlData, coverUrlData] = await Promise.all([
-				audioUrlResponse.json(),
-				coverUrlResponse.json(),
-			]);
-
-			// Step 2: Upload files directly to S3 (30-80% progress)
-			setState((prev) => ({ ...prev, uploadProgress: 30 }));
-
-			const audioUploadResponse = await uploadFileToS3(
-				audioUrlData.data.uploadUrl,
-				audioFile,
-				audioFile.type || "audio/mpeg"
-			);
-
-			if (!audioUploadResponse.ok) {
-				throw new Error("Failed to upload audio file to S3");
-			}
-
-			setState((prev) => ({ ...prev, uploadProgress: 60 }));
-
-			const coverUploadResponse = await uploadFileToS3(
-				coverUrlData.data.uploadUrl,
-				coverFile,
-				coverFile.type || "image/jpeg"
-			);
-
-			if (!coverUploadResponse.ok) {
-				throw new Error("Failed to upload cover image to S3");
-			}
-
-			// Step 3: Save metadata to database (80-100% progress)
-			setState((prev) => ({ ...prev, uploadProgress: 80 }));
-
-			const formData = new FormData();
-			formData.append("type", "song-direct");
-			formData.append("title", state.songForm.title);
-			formData.append("artist", state.songForm.artist);
-			formData.append("genre", state.songForm.genre);
-			formData.append("duration", state.songForm.duration.toString());
-			formData.append("price", state.songForm.price.toString());
-			formData.append("featured", state.songForm.featured.toString());
-			formData.append("audioFileKey", audioUrlData.data.fileKey);
-			formData.append("coverFileKey", coverUrlData.data.fileKey);
-
-			const metadataResponse = await fetch("/api/admin/upload", {
-				method: "POST",
-				body: formData,
-			});
-
-			if (!metadataResponse.ok) {
-				throw new Error("Failed to save song metadata");
-			}
-
-			const result = await metadataResponse.json();
-
-			if (!result.success) {
-				throw new Error(result.error || "Failed to save song");
-			}
-
-			setState((prev) => ({ ...prev, uploadProgress: 100, uploadStatus: "success", uploading: false }));
+			setState((prev) => ({ ...prev, uploadStatus: "success", uploading: false }));
 
 			// Reset form after 3 seconds
 			setTimeout(() => {
@@ -392,6 +439,7 @@ export default function AdminUploadForm() {
 				}));
 			}, 3000);
 		} catch (error) {
+			console.error("Upload error:", error);
 			setState((prev) => ({
 				...prev,
 				uploading: false,
@@ -427,6 +475,49 @@ export default function AdminUploadForm() {
 					</div>
 					{state.uploading && <ProgressBar progress={state.uploadProgress} />}
 					<StatusMessage status={state.uploadStatus} errorMessage={state.errorMessage} />
+
+					{/* Upload Method Selection */}
+					<div className="border-t border-gray-700/30 pt-6">
+						<label className="block text-sm font-medium text-gray-300 mb-3">Upload Method</label>
+						<div className="grid grid-cols-2 gap-4">
+							<motion.button
+								type="button"
+								onClick={() => setState((prev) => ({ ...prev, uploadMethod: "direct" }))}
+								disabled={state.uploading}
+								className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+									state.uploadMethod === "direct"
+										? "border-reggae-green bg-reggae-green/10 text-white"
+										: "border-gray-700/30 bg-stone-900/10 text-gray-400 hover:border-gray-600"
+								} ${state.uploading ? "opacity-50 cursor-not-allowed" : ""}`}
+								whileHover={{ scale: state.uploading ? 1 : 1.02 }}
+								whileTap={{ scale: state.uploading ? 1 : 0.98 }}
+							>
+								<div className="text-left">
+									<div className="font-semibold mb-1">Direct Upload</div>
+									<div className="text-xs opacity-70">Unlimited size • Recommended</div>
+								</div>
+							</motion.button>
+
+							<motion.button
+								type="button"
+								onClick={() => setState((prev) => ({ ...prev, uploadMethod: "traditional" }))}
+								disabled={state.uploading}
+								className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+									state.uploadMethod === "traditional"
+										? "border-reggae-green bg-reggae-green/10 text-white"
+										: "border-gray-700/30 bg-stone-900/10 text-gray-400 hover:border-gray-600"
+								} ${state.uploading ? "opacity-50 cursor-not-allowed" : ""}`}
+								whileHover={{ scale: state.uploading ? 1 : 1.02 }}
+								whileTap={{ scale: state.uploading ? 1 : 0.98 }}
+							>
+								<div className="text-left">
+									<div className="font-semibold mb-1">AWS S3 Upload</div>
+									<div className="text-xs opacity-70">Max 4.5MB • Small files</div>
+								</div>
+							</motion.button>
+						</div>
+					</div>
+
 					<div className="flex justify-end pt-4">
 						<motion.button
 							onClick={handleSubmit}

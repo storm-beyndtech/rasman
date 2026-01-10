@@ -4,8 +4,8 @@ import { connectDB } from "@/lib/mongodb";
 import { Purchase, Song, Album, UserProfile } from "@/lib/models";
 import { PaystackService } from "@/lib/paystack";
 import { EmailService } from "@/lib/email";
-import { S3Service } from "@/lib/s3";
 import { paystackWebhookSchema } from "@/lib/validations";
+import { S3Service } from "@/lib/s3";
 
 export async function POST(request: NextRequest) {
 	try {
@@ -158,9 +158,13 @@ async function generateDownloadLinks(item: any, itemType: "song" | "album") {
 	const links = [];
 
 	if (itemType === "song") {
-		// Generate links for single song
-		const downloadUrl = await S3Service.getSignedDownloadUrl(item.fileKey, 86400); // 24 hours
-		const streamUrl = await S3Service.getSignedStreamUrl(item.fileKey);
+		// Check if it's a Blob URL or S3 key
+		const downloadUrl = item.fileKey.startsWith("http")
+			? item.fileKey
+			: await S3Service.getSignedDownloadUrl(item.fileKey, 86400);
+		const streamUrl = item.fileKey.startsWith("http")
+			? item.fileKey
+			: await S3Service.getSignedStreamUrl(item.fileKey);
 
 		links.push({
 			title: item.title,
@@ -168,12 +172,17 @@ async function generateDownloadLinks(item: any, itemType: "song" | "album") {
 			streamUrl,
 		});
 	} else if (itemType === "album") {
-		// Generate links for all songs in album
+		// Get links for all songs in album
 		const songs = await Song.find({ _id: { $in: item.songIds } });
 
 		for (const song of songs) {
-			const downloadUrl = await S3Service.getSignedDownloadUrl(song.fileKey, 86400); // 24 hours
-			const streamUrl = await S3Service.getSignedStreamUrl(song.fileKey);
+			// Check if it's a Blob URL or S3 key
+			const downloadUrl = song.fileKey.startsWith("http")
+				? song.fileKey
+				: await S3Service.getSignedDownloadUrl(song.fileKey, 86400);
+			const streamUrl = song.fileKey.startsWith("http")
+				? song.fileKey
+				: await S3Service.getSignedStreamUrl(song.fileKey);
 
 			links.push({
 				title: song.title,

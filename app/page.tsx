@@ -3,9 +3,9 @@ import FeaturedMusic from "@/components/FeaturedMusic";
 
 export default function HomePage() {
 	return (
-		<div className="min-h-screen bg-bg">
+		<div className="min-h-screen bg-black">
 			<Hero />
-			<div className="w-full bg-[url('/images/Most-Recent-BG.svg')] bg-cover bg-center bg-no-repeat">
+			<div className="w-full bg-gradient-to-b from-black via-gray-950 to-black">
 				<FeaturedMusic />
 			</div>
 		</div>

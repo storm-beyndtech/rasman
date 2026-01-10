@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/mongodb";
 import { Song, Album } from "@/lib/models";
-import { S3Service, isValidAudioFile, isValidImageFile, getContentType } from "@/lib/s3";
+import { BlobService, isValidAudioFile, isValidImageFile, getContentType } from "@/lib/blob";
+import { S3Service } from "@/lib/s3";
 
 // POST /api/admin/upload - Handle file uploads (Admin only)
 export async function POST(request: NextRequest) {
@@ -26,11 +27,10 @@ export async function POST(request: NextRequest) {
 		const uploadType = formData.get("type") as string;
 
 		if (uploadType === "song") {
-			// Legacy method: Upload through Vercel (4.5MB limit)
-			// Use "song-direct" for unlimited file sizes
+			// AWS S3 upload: Upload through Vercel function (max 4.5MB)
 			return await handleSongUpload(formData, userId);
 		} else if (uploadType === "song-direct") {
-			// Preferred method: Direct S3 upload (no size limit)
+			// Direct Vercel Blob upload (client-side, unlimited size)
 			return await handleSongMetadataOnly(formData, userId);
 		} else if (uploadType === "album-from-songs") {
 			return await handleAlbumFromSongs(formData, userId);
@@ -74,11 +74,10 @@ async function handleSongUpload(formData: FormData, userId: string) {
 			return NextResponse.json({ success: false, error: "Invalid image file type" }, { status: 400 });
 		}
 
-		// Generate S3 keys
+		// Upload files to AWS S3
 		const audioFileKey = S3Service.generateAudioFileKey(audioFile.name, userId);
 		const coverFileKey = S3Service.generateCoverArtKey(coverFile.name, userId);
 
-		// Upload files to S3
 		const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
 		const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
 
@@ -139,7 +138,7 @@ async function handleSongMetadataOnly(formData: FormData, userId: string) {
 			return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
 		}
 
-		// Create song in database (files already uploaded to S3)
+		// Create song in database (files already uploaded to Vercel Blob)
 		const song = new Song({
 			title,
 			artist,
@@ -235,7 +234,7 @@ async function handleAlbumUpload(formData: FormData, userId: string) {
 			);
 		}
 
-		// Upload album cover to S3
+		// Upload album cover to AWS S3
 		const albumCoverKey = S3Service.generateCoverArtKey(coverFile.name, userId);
 		const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
 		await S3Service.uploadFile(albumCoverKey, coverBuffer, getContentType(coverFile.name));
@@ -246,11 +245,8 @@ async function handleAlbumUpload(formData: FormData, userId: string) {
 		for (let i = 0; i < songs.length; i++) {
 			const songData = songs[i];
 
-			// Generate S3 keys for song
+			// Upload audio file to AWS S3
 			const audioFileKey = S3Service.generateAudioFileKey(songData.audioFile.name, userId);
-			const songCoverKey = albumCoverKey; // Use album cover for individual songs
-
-			// Upload audio file to S3
 			const audioBuffer = Buffer.from(await songData.audioFile.arrayBuffer());
 			await S3Service.uploadFile(audioFileKey, audioBuffer, getContentType(songData.audioFile.name));
 
@@ -263,7 +259,7 @@ async function handleAlbumUpload(formData: FormData, userId: string) {
 				price: songData.price,
 				featured: false,
 				fileKey: audioFileKey,
-				coverArtUrl: songCoverKey,
+				coverArtUrl: albumCoverKey,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			});
@@ -337,7 +333,7 @@ async function handleAlbumFromSongs(formData: FormData, userId: string) {
 			return NextResponse.json({ success: false, error: "Invalid cover image file type" }, { status: 400 });
 		}
 
-		// Upload cover image to S3
+		// Upload cover image to AWS S3
 		const coverFileKey = S3Service.generateCoverArtKey(coverFile.name, userId);
 		const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
 		await S3Service.uploadFile(coverFileKey, coverBuffer, getContentType(coverFile.name));
@@ -397,7 +393,7 @@ async function handleUpdateCover(formData: FormData, userId: string) {
 			return NextResponse.json({ success: false, error: "Invalid image file type" }, { status: 400 });
 		}
 
-		// Upload to S3
+		// Upload to AWS S3
 		const coverFileKey = S3Service.generateCoverArtKey(coverFile.name, userId);
 		const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
 		await S3Service.uploadFile(coverFileKey, coverBuffer, getContentType(coverFile.name));
@@ -433,55 +429,3 @@ async function handleUpdateCover(formData: FormData, userId: string) {
 	}
 }
 
-// Get upload presigned URLs (for direct S3 upload)
-export async function GET(request: NextRequest) {
-	try {
-		const { userId } = await auth();
-		if (!userId) {
-			return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-		}
-
-		await connectDB();
-
-		// Check if user is admin
-		const client = await clerkClient();
-		const user = await client.users.getUser(userId);
-
-		if (user.publicMetadata?.role !== "admin") {
-			return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
-		}
-
-		const { searchParams } = new URL(request.url);
-		const fileType = searchParams.get("fileType");
-		const fileName = searchParams.get("fileName");
-
-		if (!fileType || !fileName) {
-			return NextResponse.json({ success: false, error: "File type and name are required" }, { status: 400 });
-		}
-
-		// Generate appropriate file key
-		let fileKey: string;
-		if (fileType === "audio") {
-			fileKey = S3Service.generateAudioFileKey(fileName, userId);
-		} else if (fileType === "image") {
-			fileKey = S3Service.generateCoverArtKey(fileName, userId);
-		} else {
-			return NextResponse.json({ success: false, error: "Invalid file type" }, { status: 400 });
-		}
-
-		// Generate presigned URL for upload
-		const uploadUrl = await S3Service.getUploadUrl(fileKey, getContentType(fileName));
-
-		return NextResponse.json({
-			success: true,
-			data: {
-				uploadUrl,
-				fileKey,
-				expires: "1 hour",
-			},
-		});
-	} catch (error) {
-		console.error("Error generating upload URL:", error);
-		return NextResponse.json({ success: false, error: "Failed to generate upload URL" }, { status: 500 });
-	}
-}

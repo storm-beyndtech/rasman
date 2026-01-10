@@ -14,6 +14,13 @@ interface PurchaseItemCardProps {
 
 const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({ purchase, index }) => {
 	const { playSong, pauseSong, resumeSong, downloadSong, audioState } = useAudio();
+
+	// Safety check: return null if item is missing
+	if (!purchase.item || !purchase.item._id) {
+		console.error("Purchase item is missing:", purchase);
+		return null;
+	}
+
 	const isCurrentSong = purchase.itemType === "song" && audioState.currentSong?._id === purchase.item._id;
 	const isPlaying = isCurrentSong && audioState.isPlaying;
 

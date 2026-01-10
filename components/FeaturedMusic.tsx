@@ -251,11 +251,10 @@ const DesktopSection: React.FC<DesktopSectionProps> = ({
 	animation,
 }) => (
 	<motion.div className="space-y-6" {...animation}>
-		<div className="text-center mb-16">
+		<div className="text-center mb-8">
 			<Link href={href}>
-				<h2 className="text-xl font-bold text-reggae-green tracking-wider">
+				<h2 className="text-base font-medium text-gray-300 hover:text-reggae-green transition-colors">
 					{title}
-					<span className="text-reggae-yellow">&darr;</span>
 				</h2>
 			</Link>
 		</div>

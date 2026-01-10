@@ -58,16 +58,17 @@ export async function GET(request: NextRequest) {
 			Song.countDocuments(query),
 		]);
 
-		// Generate cover art URLs (public access for browsing)
+		// Generate cover art URLs and remove fileKey for security
 		const songsWithUrls = await Promise.all(
 			songs.map(async (song) => {
 				let coverArtUrl = song.coverArtUrl;
 
+				// If it's an S3 key (not a URL), generate signed URL
 				if (coverArtUrl && !coverArtUrl.startsWith("http")) {
 					try {
-						coverArtUrl = await S3Service.getSignedDownloadUrl(coverArtUrl, 3600); // 1 hour expiry
-					} catch (s3Error) {
-						console.error("Cover signing failed for song", song._id?.toString(), coverArtUrl, s3Error);
+						coverArtUrl = await S3Service.getSignedDownloadUrl(coverArtUrl, 3600);
+					} catch (error) {
+						console.error("Failed to sign cover art URL:", error);
 					}
 				}
 
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
 					coverArtUrl,
 					fileKey: undefined,
 				};
-			}),
+			})
 		);
 
 		const totalPages = Math.ceil(totalCount / limit);
@@ -238,12 +239,32 @@ export async function DELETE(request: NextRequest) {
 			return NextResponse.json({ success: false, error: "Song not found" }, { status: 404 });
 		}
 
-		// Delete files from S3
+		// Delete files from storage (S3 or Blob)
 		try {
-			await Promise.all([S3Service.deleteFile(song.fileKey), S3Service.deleteFile(song.coverArtUrl)]);
-		} catch (s3Error) {
-			console.error("Error deleting files from S3:", s3Error);
-			// Continue with database deletion even if S3 deletion fails
+			const deletePromises = [];
+
+			// Check if fileKey is S3 key or Blob URL
+			if (song.fileKey.startsWith("http")) {
+				// Blob URL - use Blob delete
+				const { BlobService } = await import("@/lib/blob");
+				deletePromises.push(BlobService.deleteFile(song.fileKey));
+			} else {
+				// S3 key - use S3 delete
+				deletePromises.push(S3Service.deleteFile(song.fileKey));
+			}
+
+			// Check if coverArtUrl is S3 key or Blob URL
+			if (song.coverArtUrl.startsWith("http")) {
+				const { BlobService } = await import("@/lib/blob");
+				deletePromises.push(BlobService.deleteFile(song.coverArtUrl));
+			} else {
+				deletePromises.push(S3Service.deleteFile(song.coverArtUrl));
+			}
+
+			await Promise.all(deletePromises);
+		} catch (storageError) {
+			console.error("Error deleting files from storage:", storageError);
+			// Continue with database deletion even if storage deletion fails
 		}
 
 		// Delete song from database

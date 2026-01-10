@@ -56,8 +56,10 @@ export async function POST(request: NextRequest, { params }: DownloadRouteParams
 				return NextResponse.json({ success: false, error: "Song not found" }, { status: 404 });
 			}
 
-			// Generate download URL (24 hour expiry)
-			const downloadUrl = await S3Service.getSignedDownloadUrl(song.fileKey, 86400);
+			// Check if it's a Blob URL or S3 key
+			const downloadUrl = song.fileKey.startsWith("http")
+				? song.fileKey
+				: await S3Service.getSignedDownloadUrl(song.fileKey, 86400);
 
 			downloadLinks.push({
 				title: song.title,
@@ -75,7 +77,10 @@ export async function POST(request: NextRequest, { params }: DownloadRouteParams
 
 			// Generate download URLs for all songs in the album
 			for (const song of album.songIds) {
-				const downloadUrl = await S3Service.getSignedDownloadUrl(song.fileKey, 86400);
+				// Check if it's a Blob URL or S3 key
+				const downloadUrl = song.fileKey.startsWith("http")
+					? song.fileKey
+					: await S3Service.getSignedDownloadUrl(song.fileKey, 86400);
 
 				downloadLinks.push({
 					title: song.title,
@@ -96,7 +101,6 @@ export async function POST(request: NextRequest, { params }: DownloadRouteParams
 				downloadLinks,
 				purchaseId: purchase._id,
 				itemType,
-				expiresIn: 86400, // 24 hours
 				downloadedAt: new Date().toISOString(),
 			},
 		});

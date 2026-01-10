@@ -3,7 +3,6 @@ import { auth } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/mongodb";
 import { ISong, Purchase, Song } from "@/lib/models";
 import { S3Service } from "@/lib/s3";
-import { headers } from "next/headers";
 
 interface StreamRouteParams {
 	params: Promise<{ songId: string }>;
@@ -47,21 +46,20 @@ export async function GET(request: NextRequest, { params }: StreamRouteParams) {
 			);
 		}
 
-		// Check if file exists in S3 using the song's fileKey
-		const fileExists = await S3Service.fileExists(song.fileKey);
-		if (!fileExists) {
+		// Verify song has a valid fileKey
+		if (!song.fileKey) {
 			return NextResponse.json({ success: false, error: "Audio file not found" }, { status: 404 });
 		}
 
-		// Get range header for partial content support
-		const headersList = await headers();
-		const range = headersList.get("range");
-
-		// Generate signed streaming URL using the song's fileKey
-		const streamUrl = await S3Service.getSignedStreamUrl(song.fileKey, range || undefined);
-
-		// For direct streaming, redirect to signed URL
-		return Response.redirect(streamUrl, 302);
+		// Check if it's a Blob URL (starts with http) or S3 key
+		if (song.fileKey.startsWith("http")) {
+			// Direct Blob URL - redirect directly
+			return Response.redirect(song.fileKey, 302);
+		} else {
+			// S3 key - generate signed URL
+			const streamUrl = await S3Service.getSignedStreamUrl(song.fileKey);
+			return Response.redirect(streamUrl, 302);
+		}
 	} catch (error) {
 		console.error("Error streaming file:", error);
 		return NextResponse.json({ success: false, error: "Failed to stream file" }, { status: 500 });
@@ -106,36 +104,31 @@ export async function POST(request: NextRequest, { params }: StreamRouteParams) 
 			);
 		}
 
-		// Check if file exists in S3
-		const fileExists = await S3Service.fileExists(song.fileKey);
-		if (!fileExists) {
+		// Verify song has a valid fileKey
+		if (!song.fileKey) {
 			return NextResponse.json({ success: false, error: "Audio file not found" }, { status: 404 });
 		}
 
-		// Get file info from S3 (optional - for additional metadata)
-		let fileInfo;
-		try {
-			fileInfo = await S3Service.getFileInfo(song.fileKey);
-		} catch (error) {
-			console.warn("Could not get file info:", error);
-			fileInfo = null;
+		// Check if it's a Blob URL or S3 key
+		let streamUrl: string;
+		if (song.fileKey.startsWith("http")) {
+			// Direct Blob URL
+			streamUrl = song.fileKey;
+		} else {
+			// S3 key - generate signed URL
+			streamUrl = await S3Service.getSignedStreamUrl(song.fileKey);
 		}
-
-		// Generate temporary streaming URL (short expiry for security)
-		const streamUrl = await S3Service.getSignedStreamUrl(song.fileKey);
 
 		return NextResponse.json({
 			success: true,
 			data: {
 				streamUrl,
-				contentType: fileInfo?.contentType || "audio/mpeg",
-				contentLength: fileInfo?.contentLength,
+				contentType: "audio/mpeg",
 				duration: song.duration,
 				title: song.title,
 				artist: song.artist,
 				genre: song.genre,
 				songId: song._id,
-				expiresIn: 3600, // 1 hour
 			},
 		});
 	} catch (error) {

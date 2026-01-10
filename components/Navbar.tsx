@@ -54,7 +54,6 @@ const Navbar: React.FC = () => {
 		{ href: "/songs", label: "Songs" },
 		{ href: "/albums", label: "Albums" },
 		{ href: "/biography", label: "Biography" },
-		{ href: "/contact", label: "Contact" },
 	];
 
 	const authLinks = isSignedIn
@@ -81,7 +80,7 @@ const Navbar: React.FC = () => {
 
 			<nav
 				className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 navbar-container border-b border-transparent ${
-					scrolled ? "bg-black/10 backdrop-blur-xl border-gray-700/20 shadow-2xl" : "bg-transparent"
+					scrolled ? "bg-black/80 backdrop-blur-xl border-gray-800/40 shadow-2xl" : "bg-transparent"
 				}`}
 			>
 				<div className="container mx-auto px-4">
@@ -137,7 +136,7 @@ const Navbar: React.FC = () => {
 							animate={{ opacity: 1, y: 0, scale: 1 }}
 							exit={{ opacity: 0, y: -20, scale: 0.95 }}
 							transition={{ type: "spring", stiffness: 400, damping: 25 }}
-							className="absolute top-full right-4 mt-2 w-80 bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl shadow-2xl overflow-hidden z-[60]"
+							className="absolute top-full right-4 mt-2 w-80 bg-black/95 backdrop-blur-2xl border border-gray-800/50 rounded-2xl shadow-2xl overflow-hidden z-[60]"
 						>
 							<div className="relative p-6 space-y-1 z-[60]">
 								{/* Navigation Links */}
@@ -154,8 +153,8 @@ const Navbar: React.FC = () => {
 												onClick={() => setIsOpen(false)}
 												className={`block py-3 px-4 rounded-xl font-medium transition-all duration-300 group relative z-[60] ${
 													pathname === link.href
-														? "text-reggae-green bg-green-800/10"
-														: "text-gray-200 hover:text-reggae-green hover:bg-green-800/20"
+														? "text-reggae-green bg-reggae-green/10"
+														: "text-gray-200 hover:text-reggae-green hover:bg-reggae-green/5"
 												}`}
 											>
 												<span className="relative z-[60]">{link.label}</span>
@@ -180,8 +179,8 @@ const Navbar: React.FC = () => {
 													onClick={() => setIsOpen(false)}
 													className={`flex items-center space-x-3 py-3 px-4 rounded-xl font-medium transition-all duration-300 group relative z-[60] ${
 														pathname === link.href
-															? "text-reggae-green bg-gray-800/40"
-															: "text-gray-200 hover:text-reggae-green hover:bg-gray-800/20"
+															? "text-reggae-green bg-reggae-green/10"
+															: "text-gray-200 hover:text-reggae-green hover:bg-reggae-green/5"
 													}`}
 												>
 													<span className="text-gray-400 group-hover:text-reggae-green transition-colors">
@@ -201,7 +200,7 @@ const Navbar: React.FC = () => {
 											initial={{ opacity: 0, y: 10 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: 0.3 }}
-											className="flex items-center space-x-4 p-4 bg-green-800/10 rounded-xl border border-gray-700/20 relative z-[60]"
+											className="flex items-center space-x-4 p-4 bg-reggae-green/5 rounded-xl border border-reggae-green/20 relative z-[60]"
 										>
 											<div className="relative z-[70]">
 												<UserButton

@@ -55,16 +55,17 @@ export async function GET(request: NextRequest) {
 			Album.countDocuments(query),
 		]);
 
-		// Generate cover art URLs (public access for browsing)
+		// Generate cover art URLs for S3 keys
 		const albumsWithUrls = await Promise.all(
 			albums.map(async (album) => {
 				let coverArtUrl = album.coverArtUrl;
 
+				// If it's an S3 key (not a URL), generate signed URL
 				if (coverArtUrl && !coverArtUrl.startsWith("http")) {
 					try {
-						coverArtUrl = await S3Service.getSignedDownloadUrl(coverArtUrl, 3600); // 1 hour expiry
-					} catch (s3Error) {
-						console.error("Cover signing failed for album", album._id?.toString(), coverArtUrl, s3Error);
+						coverArtUrl = await S3Service.getSignedDownloadUrl(coverArtUrl, 3600);
+					} catch (error) {
+						console.error("Failed to sign album cover art URL:", error);
 					}
 				}
 
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
 					...album,
 					coverArtUrl,
 				};
-			}),
+			})
 		);
 
 		const totalPages = Math.ceil(totalCount / limit);
@@ -234,23 +235,42 @@ export async function DELETE(request: NextRequest) {
 			return NextResponse.json({ success: false, error: "Album not found" }, { status: 404 });
 		}
 
-		// Delete files from S3
+		// Delete files from storage (S3 or Blob)
 		try {
-			const deletePromises = [S3Service.deleteFile(album.coverArtUrl)];
+			const deletePromises = [];
+			const { BlobService } = await import("@/lib/blob");
+
+			// Delete album cover
+			if (album.coverArtUrl.startsWith("http")) {
+				deletePromises.push(BlobService.deleteFile(album.coverArtUrl));
+			} else {
+				deletePromises.push(S3Service.deleteFile(album.coverArtUrl));
+			}
 
 			// Delete all song files in the album
 			if (album.songIds && album.songIds.length > 0) {
 				const songs = await Song.find({ _id: { $in: album.songIds } });
 				songs.forEach((song) => {
-					deletePromises.push(S3Service.deleteFile(song.fileKey));
-					deletePromises.push(S3Service.deleteFile(song.coverArtUrl));
+					// Delete audio file
+					if (song.fileKey.startsWith("http")) {
+						deletePromises.push(BlobService.deleteFile(song.fileKey));
+					} else {
+						deletePromises.push(S3Service.deleteFile(song.fileKey));
+					}
+
+					// Delete cover art
+					if (song.coverArtUrl.startsWith("http")) {
+						deletePromises.push(BlobService.deleteFile(song.coverArtUrl));
+					} else {
+						deletePromises.push(S3Service.deleteFile(song.coverArtUrl));
+					}
 				});
 			}
 
 			await Promise.all(deletePromises);
-		} catch (s3Error) {
-			console.error("Error deleting files from S3:", s3Error);
-			// Continue with database deletion even if S3 deletion fails
+		} catch (storageError) {
+			console.error("Error deleting files from storage:", storageError);
+			// Continue with database deletion even if storage deletion fails
 		}
 
 		// Delete songs in the album

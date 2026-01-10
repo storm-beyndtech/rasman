@@ -4,7 +4,6 @@ import { connectDB } from "@/lib/mongodb";
 import { Song, Album, Purchase, UserProfile, ISong, IAlbum } from "@/lib/models";
 import { purchaseSchema } from "@/lib/validations";
 import { PaystackService } from "@/lib/paystack";
-import { S3Service } from "@/lib/s3";
 
 // POST /api/purchase - Initialize purchase
 export async function POST(request: NextRequest) {
@@ -167,27 +166,30 @@ export async function GET(request: NextRequest) {
 			Purchase.countDocuments(query),
 		]);
 
-		// Populate item details
-		const purchasesWithItems = await Promise.all(
-			purchases.map(async (purchase) => {
-				let item: ISong | IAlbum | null;
-				if (purchase.itemType === "song") {
-					item = (await Song.findById(purchase.itemId).lean()) as ISong | null;
-				} else {
-					item = (await Album.findById(purchase.itemId).lean()) as IAlbum | null;
-				}
+		// Populate item details and filter out deleted items
+		const purchasesWithItems = (
+			await Promise.all(
+				purchases.map(async (purchase) => {
+					let item: ISong | IAlbum | null;
+					if (purchase.itemType === "song") {
+						item = (await Song.findById(purchase.itemId).lean()) as ISong | null;
+					} else {
+						item = (await Album.findById(purchase.itemId).lean()) as IAlbum | null;
+					}
 
-				// Convert S3 key to signed URL
-				if (item && item.coverArtUrl) {
-					item.coverArtUrl = await S3Service.getSignedDownloadUrl(item.coverArtUrl, 3600);
-				}
+					// Return null if item was deleted
+					if (!item) {
+						console.warn(`Purchase ${purchase._id} has deleted item ${purchase.itemId}`);
+						return null;
+					}
 
-				return {
-					...JSON.parse(JSON.stringify(purchase)),
-					item,
-				};
-			}),
-		);
+					return {
+						...JSON.parse(JSON.stringify(purchase)),
+						item,
+					};
+				}),
+			)
+		).filter((p) => p !== null); // Filter out purchases with deleted items
 
 		const totalPages = Math.ceil(totalCount / limit);
 

@@ -25,10 +25,16 @@ export class S3Service {
 			Bucket: BUCKET_NAME,
 			Key: key,
 			ContentType: contentType,
+			// ACL: "public-read", // Uncomment if you want uploaded files to be publicly readable
 		});
 
 		try {
-			const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
+			const signedUrl = await getSignedUrl(s3Client, command, {
+				expiresIn: 3600, // 1 hour
+				// Ensure content type is enforced
+				unhoistableHeaders: new Set(["content-type"]),
+			});
+			console.log("Generated presigned URL for:", key);
 			return signedUrl;
 		} catch (error) {
 			console.error("Error generating upload URL:", error);

@@ -48,14 +48,14 @@ const FeaturedMusic: React.FC = () => {
 	return (
 		<div className="relative py-20 sm:pt-96 sm:pb-40 overflow-hidden">
 			{/* Floating Decorative Elements */}
-			<div className="top-8 left-10 absolute">
+			<div className="top-8 left-10 absolute z-10">
 				<Image src="/images/Floating-Text-1.svg" alt="text" width={40} height={170} />
 			</div>
 
 			{/* Archive Center */}
 			<ArchivePlaceholder />
 
-			<div className="top-12 right-0 absolute">
+			<div className="top-12 right-0 absolute z-10">
 				<Image src="/images/Floating-Text-2.svg" alt="text" width={120} height={20} />
 			</div>
 
@@ -89,7 +89,7 @@ const FeaturedMusic: React.FC = () => {
 			</div>
 
 			{/* Content */}
-			<div className="container mx-auto px-4 pt-20">
+			<div className="container mx-auto px-4 pt-20 relative z-10">
 				{/* Mobile Tabbed Content */}
 				<div className="lg:hidden">
 					<AnimatePresence mode="wait">
@@ -127,7 +127,7 @@ const FeaturedMusic: React.FC = () => {
 				<motion.div className="hidden lg:flex items-start gap-8 justify-center" style={{ y: cardsY }}>
 					{/* Singles Section - Left */}
 					<DesktopSection
-						title="Singles"
+						title="singles"
 						href="/songs"
 						items={songs}
 						EmptyIcon={Music}
@@ -141,7 +141,7 @@ const FeaturedMusic: React.FC = () => {
 
 					{/* Albums Section - Right */}
 					<DesktopSection
-						title="Albums"
+						title="albums"
 						href="/albums"
 						items={albums}
 						EmptyIcon={AlbumIcon}
@@ -251,10 +251,14 @@ const DesktopSection: React.FC<DesktopSectionProps> = ({
 	animation,
 }) => (
 	<motion.div className="space-y-6" {...animation}>
-		<div className="text-center mb-8">
+		<div className="text-center mb-16">
 			<Link href={href}>
-				<h2 className="text-base font-medium text-gray-300 hover:text-reggae-green transition-colors">
-					{title}
+				<h2
+					className={`uppercase text-xl font-bold ${
+						title === "albums" ? "text-reggae-yellow" : "text-reggae-green"
+					} hover:text-green-400 transition-colors`}
+				>
+					{title} ↓
 				</h2>
 			</Link>
 		</div>

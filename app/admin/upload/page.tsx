@@ -23,6 +23,7 @@ interface UploadFormState {
 	uploadStatus: "idle" | "uploading" | "success" | "error";
 	errorMessage: string;
 	uploadMethod: "direct" | "traditional";
+	formKey: number;
 }
 
 const SongForm: React.FC<{
@@ -135,7 +136,8 @@ const FileUpload: React.FC<{
 	file: File | null;
 	handleFileSelect: (type: "audio" | "cover", file: File) => void;
 	uploading: boolean;
-}> = ({ type, file, handleFileSelect, uploading }) => (
+	formKey: number;
+}> = ({ type, file, handleFileSelect, uploading, formKey }) => (
 	<div>
 		<label className="block text-sm font-medium text-gray-300 mb-3">
 			{type === "audio" ? "Audio File *" : "Cover Art *"}
@@ -148,6 +150,7 @@ const FileUpload: React.FC<{
 			}`}
 		>
 			<input
+				key={`${type}-${formKey}`}
 				type="file"
 				accept={type === "audio" ? "audio/*" : "image/*"}
 				onChange={(e) => {
@@ -255,6 +258,7 @@ export default function AdminUploadForm() {
 		uploadStatus: "idle",
 		errorMessage: "",
 		uploadMethod: "direct",
+		formKey: 0,
 	});
 
 	const updateSongForm = (updates: Partial<SongFormState>) => {
@@ -436,6 +440,8 @@ export default function AdminUploadForm() {
 					},
 					uploadStatus: "idle",
 					uploadProgress: 0,
+					errorMessage: "",
+					formKey: prev.formKey + 1,
 				}));
 			}, 3000);
 		} catch (error) {
@@ -465,12 +471,14 @@ export default function AdminUploadForm() {
 							file={state.songForm.audioFile}
 							handleFileSelect={handleFileSelect}
 							uploading={state.uploading}
+							formKey={state.formKey}
 						/>
 						<FileUpload
 							type="cover"
 							file={state.songForm.coverFile}
 							handleFileSelect={handleFileSelect}
 							uploading={state.uploading}
+							formKey={state.formKey}
 						/>
 					</div>
 					{state.uploading && <ProgressBar progress={state.uploadProgress} />}

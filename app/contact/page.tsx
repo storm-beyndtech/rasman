@@ -73,25 +73,42 @@ const ContactPage: React.FC = () => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
 	};
 
+	const fadeInVariants = {
+		initial: { opacity: 0, y: 20 },
+		animate: { opacity: 1, y: 0 },
+	};
+
 	return (
-		<div className="min-h-screen bg-bg pt-24 pb-16 relative overflow-hidden">
-			<div className="absolute inset-0 bg-gradient-to-br from-reggae-green/5 via-bg to-reggae-yellow/10 pointer-events-none" />
-			<div className="container mx-auto px-4 relative z-10">
-				<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-					<p className="text-sm text-reggae-green tracking-[0.25em] uppercase mb-4">Contact</p>
-					<h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Let's talk music and collaboration</h1>
-					<p className="text-lg text-gray-300 max-w-2xl mx-auto">
-						Send a note about bookings, purchases, or partnership ideas. We respond quickly so your rhythm never
-						stops.
+		<div className="min-h-screen bg-bg pt-20 pb-20 relative overflow-hidden">
+			{/* Background Elements */}
+			<div className="absolute inset-0 bg-gradient-to-br from-reggae-green/5 via-black to-reggae-yellow/5 pointer-events-none" />
+			<div className="absolute top-20 right-20 w-72 h-72 bg-reggae-green/10 rounded-full blur-3xl pointer-events-none" />
+			<div className="absolute bottom-20 left-20 w-96 h-96 bg-reggae-yellow/10 rounded-full blur-3xl pointer-events-none" />
+
+			<div className="container mx-auto px-4 py-8 relative z-10">
+				{/* Header */}
+				<motion.div
+					initial="initial"
+					animate="animate"
+					variants={fadeInVariants}
+					className="text-center mb-12"
+				>
+					<h1 className="mb-4 w-fit mx-auto text-4xl font-semibold font-montserrat bg-clip-text text-transparent bg-gradient-to-r from-white/50 via-white to-white/30 mt-2">
+						Get In Touch
+					</h1>
+					<p className="text-sm text-gray-300 font-light max-w-xl mx-auto">
+						<span className="text-emerald-400 font-semibold">Connect </span>
+						with us for bookings, purchases, or partnership ideas
 					</p>
 				</motion.div>
 
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ delay: 0.1 }}
-						className="lg:col-span-2 bg-black/30 backdrop-blur-xl border border-gray-700/30 rounded-2xl p-8 shadow-2xl"
+						initial="initial"
+						animate="animate"
+						variants={fadeInVariants}
+						transition={{ delay: 0.2 }}
+						className="lg:col-span-2 bg-black/20 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-8 shadow-2xl"
 					>
 						<form className="space-y-6" onSubmit={handleSubmit}>
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -101,7 +118,7 @@ const ContactPage: React.FC = () => {
 										type="text"
 										value={formData.name}
 										onChange={(e) => handleChange("name", e.target.value)}
-										className="w-full px-4 py-3 rounded-xl bg-black/40 border border-gray-700/40 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-reggae-green"
+										className="w-full px-4 py-3 rounded-xl bg-black/20 border border-gray-700/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-reggae-green"
 										placeholder="Your full name"
 										required
 									/>
@@ -113,7 +130,7 @@ const ContactPage: React.FC = () => {
 										type="email"
 										value={formData.email}
 										onChange={(e) => handleChange("email", e.target.value)}
-										className="w-full px-4 py-3 rounded-xl bg-black/40 border border-gray-700/40 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-reggae-green"
+										className="w-full px-4 py-3 rounded-xl bg-black/20 border border-gray-700/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-reggae-green"
 										placeholder="you@example.com"
 										required
 									/>
@@ -126,7 +143,7 @@ const ContactPage: React.FC = () => {
 									type="text"
 									value={formData.subject}
 									onChange={(e) => handleChange("subject", e.target.value)}
-									className="w-full px-4 py-3 rounded-xl bg-black/40 border border-gray-700/40 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-reggae-green"
+									className="w-full px-4 py-3 rounded-xl bg-black/20 border border-gray-700/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-reggae-green"
 									placeholder="How can we help?"
 									required
 								/>
@@ -137,7 +154,7 @@ const ContactPage: React.FC = () => {
 								<textarea
 									value={formData.message}
 									onChange={(e) => handleChange("message", e.target.value)}
-									className="w-full px-4 py-3 rounded-xl bg-black/40 border border-gray-700/40 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-reggae-green min-h-[160px]"
+									className="w-full px-4 py-3 rounded-xl bg-black/20 border border-gray-700/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-reggae-green min-h-[160px]"
 									placeholder="Share details about your request..."
 									required
 								/>
@@ -170,14 +187,17 @@ const ContactPage: React.FC = () => {
 					</motion.div>
 
 					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ delay: 0.2 }}
-						className="bg-black/40 backdrop-blur-xl border border-gray-700/30 rounded-2xl p-6 text-white shadow-xl space-y-6"
+						initial="initial"
+						animate="animate"
+						variants={fadeInVariants}
+						transition={{ delay: 0.4 }}
+						className="bg-black/10 backdrop-blur-2xl border border-gray-700/30 rounded-2xl p-6 text-white shadow-xl space-y-6"
 					>
 						<div>
 							<h3 className="text-xl font-semibold mb-2">Direct support</h3>
-							<p className="text-gray-400">For urgent questions about purchases or downloads, use the contact form or:</p>
+							<p className="text-gray-400">
+								For urgent questions about purchases or downloads, use the contact form or:
+							</p>
 						</div>
 						<div className="space-y-4">
 							<div className="flex items-center gap-3">
@@ -199,9 +219,9 @@ const ContactPage: React.FC = () => {
 								</div>
 							</div>
 						</div>
-						<div className="p-4 rounded-xl bg-black/30 border border-gray-700/40">
-							<h4 className="font-semibold mb-2">Why reach out?</h4>
-							<ul className="text-gray-300 text-sm space-y-2 list-disc list-inside">
+						<div className="p-4 rounded-xl bg-black/10 border border-gray-700/20">
+							<h4 className="font-semibold mb-2 text-gray-300">Why reach out?</h4>
+							<ul className="text-gray-400 text-sm space-y-2 list-disc list-inside">
 								<li>Purchase or download assistance</li>
 								<li>Booking and collaboration requests</li>
 								<li>Technical issues with streaming</li>

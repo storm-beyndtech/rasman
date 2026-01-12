@@ -62,11 +62,7 @@ const SongCard: React.FC<SongCardProps> = ({ song, index, purchaseId, viewMode =
 	};
 
 	const formatPrice = (price: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 2,
-		}).format(price);
+		return `₦${price.toLocaleString()}`;
 	};
 
 	// Grid View (Your current design)

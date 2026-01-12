@@ -89,7 +89,7 @@ const AlbumsPage: React.FC = () => {
 		setPage(1);
 	};
 
-	const formatPrice = (price: number) => `NGN ${price.toLocaleString()}`;
+	const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
 	const formatDate = (date: Date | string) => {
 		const dateObj = typeof date === "string" ? new Date(date) : date;
 		return dateObj.toLocaleDateString("en-GB", {

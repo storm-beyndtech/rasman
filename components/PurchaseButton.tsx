@@ -108,7 +108,7 @@ const PurchaseButton: React.FC<PurchaseButtonProps> = ({
   `;
 
 	const formatPrice = (price: number): string => {
-		return `NGN ${price.toLocaleString()}`;
+		return `₦${price.toLocaleString()}`;
 	};
 
 	const handlePurchase = async () => {

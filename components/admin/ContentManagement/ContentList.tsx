@@ -156,7 +156,6 @@ const ContentList: React.FC<{
 								</td>
 								<td className="px-6 py-4">
 									<div className="flex items-center gap-1">
-										<DollarSign size={14} className="text-reggae-green" />
 										<span className="font-semibold text-white">{formatPrice(item.price)}</span>
 									</div>
 								</td>

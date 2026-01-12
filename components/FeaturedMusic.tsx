@@ -264,7 +264,7 @@ const DesktopSection: React.FC<DesktopSectionProps> = ({
 		</div>
 
 		{items.length > 0 ? (
-			<div className="h-[640px] overflow-y-auto space-y-4 scrollbar-hide pr-2">{items.map(renderItem)}</div>
+			<div className="h-[760px] overflow-y-auto space-y-4 scrollbar-hide pr-2">{items.map(renderItem)}</div>
 		) : (
 			<div className="min-w-[300px] text-center py-20">
 				<EmptyIcon strokeWidth={1} size={48} className="mx-auto text-gray-400 mb-4" />

@@ -41,11 +41,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, index, purchaseId, viewMod
 	};
 
 	const formatPrice = (price: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 2,
-		}).format(price);
+		return `₦${price.toLocaleString()}`;
 	};
 
 	// Grid View
@@ -61,15 +57,15 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, index, purchaseId, viewMod
 				<div className="absolute inset-0 bg-gradient-to-br from-reggae-yellow/5 via-transparent to-reggae-green/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
 				{/* Content */}
-				<div className="relative p-8 h-full flex flex-col justify-between">
+				<div className="relative p-5 h-full flex flex-col justify-between">
 					{/* Cover Art */}
-					<div className="relative w-[270px] h-auto mx-auto rounded-lg overflow-hidden bg-black/20 mb-4">
+					<div className="relative w-[260px] mx-auto rounded-lg overflow-hidden bg-black/20 mb-4">
 						<Image
 							src={album.coverArtUrl}
 							alt={album.title}
-							width={270}
-							height={270}
-							className="object-cover transition-transform duration-500 group-hover:scale-110"
+							width={260}
+							height={260}
+							className="h-auto object-cover transition-transform duration-500 group-hover:scale-110"
 						/>
 
 						{/* Track count badge */}

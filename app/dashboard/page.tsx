@@ -67,7 +67,7 @@ const DashboardContent: React.FC = () => {
 		[purchases, filter, searchQuery],
 	);
 
-	const formatCurrency = (amount: number): string => `NGN ${amount.toLocaleString()}`;
+	const formatCurrency = (amount: number): string => `₦${amount.toLocaleString()}`;
 
 	const isInitialLoading = isLoading && !data;
 

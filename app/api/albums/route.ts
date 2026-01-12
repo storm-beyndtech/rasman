@@ -115,14 +115,52 @@ export async function POST(request: NextRequest) {
 		}
 
 		await connectDB();
-		const body = await request.json();
+
+		// Parse FormData
+		const formData = await request.formData();
+		const title = formData.get("title") as string;
+		const artist = formData.get("artist") as string;
+		const priceStr = formData.get("price") as string;
+		const description = formData.get("description") as string;
+		const featuredStr = formData.get("featured") as string;
+		const songIdsStr = formData.get("songIds") as string;
+		const coverArtFile = formData.get("coverArt") as File | null;
+
+		// Parse and validate
+		const price = parseFloat(priceStr);
+		const featured = featuredStr === "true";
+		const songIds = JSON.parse(songIdsStr || "[]");
+
+		// Upload cover art (required)
+		if (!coverArtFile) {
+			return NextResponse.json(
+				{ success: false, error: "Cover art is required" },
+				{ status: 400 },
+			);
+		}
+
+		const arrayBuffer = await coverArtFile.arrayBuffer();
+		const buffer = Buffer.from(arrayBuffer);
+		const coverFileKey = S3Service.generateCoverArtKey(coverArtFile.name, userId);
+		const contentType = coverArtFile.type || "image/jpeg";
+
+		await S3Service.uploadFile(coverFileKey, buffer, contentType);
+		const coverArtUrl = coverFileKey;
 
 		// Validate input
-		const validatedData = albumSchema.parse(body);
+		const validatedData = albumSchema.parse({
+			title,
+			artist,
+			price,
+			description: description || "",
+			featured,
+			songIds,
+		});
 
 		// Create new album
 		const album = new Album({
 			...validatedData,
+			coverArtUrl,
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		});

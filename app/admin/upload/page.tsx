@@ -281,6 +281,7 @@ export default function AdminUploadForm() {
 			const audioBlob = await upload(audioFile.name, audioFile, {
 				access: "public",
 				handleUploadUrl: "/api/admin/blob-upload",
+				addRandomSuffix: true,
 			});
 
 			console.log("Audio uploaded to Vercel Blob:", audioBlob.url);
@@ -290,6 +291,7 @@ export default function AdminUploadForm() {
 			const coverBlob = await upload(coverFile.name, coverFile, {
 				access: "public",
 				handleUploadUrl: "/api/admin/blob-upload",
+				addRandomSuffix: true,
 			});
 
 			console.log("Cover uploaded to Vercel Blob:", coverBlob.url);

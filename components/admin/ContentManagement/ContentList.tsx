@@ -5,7 +5,6 @@ import {
 	Calendar,
 	Clock,
 	Disc,
-	DollarSign,
 	Edit,
 	Eye,
 	Loader2,

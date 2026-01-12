@@ -10,7 +10,6 @@ import {
 	ScanSearch,
 	Star,
 	Clock,
-	DollarSign,
 	Loader2,
 	X,
 	MicOff,
@@ -377,8 +376,7 @@ const SongsPage: React.FC = () => {
 
 												{/* Price & Status */}
 												<div className="text-right flex-shrink-0">
-													<div className="flex items-center gap-2 mb-2">
-														<DollarSign size={16} className="text-emerald-500" />
+													<div className="flex items-center justify-end gap-2 mb-2">
 														<span className="font-bold text-emerald-500">{formatPrice(song.price)}</span>
 													</div>
 													{hasPurchased(song._id, "song") && (

@@ -11,7 +11,6 @@ import {
 	Star,
 	Calendar,
 	Music,
-	DollarSign,
 	Loader2,
 	X,
 } from "lucide-react";
@@ -365,8 +364,7 @@ const AlbumsPage: React.FC = () => {
 
 												{/* Price & Status */}
 												<div className="text-right flex-shrink-0">
-													<div className="flex items-center gap-2 mb-3">
-														<DollarSign size={18} className="text-reggae-yellow" />
+													<div className="flex items-center justify-end gap-2 mb-3">
 														<span className="font-bold text-reggae-yellow text-xl">
 															{formatPrice(album.price)}
 														</span>

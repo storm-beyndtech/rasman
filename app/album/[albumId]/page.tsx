@@ -13,7 +13,6 @@ import {
 	Share2,
 	Download,
 	Star,
-	DollarSign,
 	Heart,
 } from "lucide-react";
 import { IAlbum, ISong } from "@/lib/models";
@@ -344,8 +343,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ album, songs }) => {
 											{/* Individual Song Price & Actions */}
 											<div className="text-right flex items-center gap-4">
 												<div>
-													<div className="flex items-center gap-1 mb-2">
-														<DollarSign size={14} className="text-reggae-green" />
+													<div className="flex items-center justify-end gap-1 mb-2">
 														<span className="font-bold text-reggae-green">{formatPrice(song.price)}</span>
 													</div>
 													{!isPurchased && (

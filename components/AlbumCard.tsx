@@ -28,15 +28,13 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, index, purchaseId, viewMod
 
 	const handleDownload = () => {
 		if (purchased && purchaseId) {
-			// downloadAlbum(album, purchaseId);
-			console.log("Download album - implement in AudioContext");
+			downloadAlbum(album, purchaseId);
 		}
 	};
 
 	const handlePurchase = () => {
 		if (isSignedIn && !purchased) {
-			// purchaseAlbum(album);
-			console.log("Purchase album - implement in AudioContext");
+			purchaseAlbum(album);
 		}
 	};
 

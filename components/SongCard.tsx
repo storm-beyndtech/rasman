@@ -7,6 +7,7 @@ import { useUser, SignInButton } from "@clerk/nextjs";
 import Image from "next/image";
 import { ISong } from "@/lib/models";
 import { useAudio } from "@/provider/AudioProvider";
+import PurchaseButton from "./PurchaseButton";
 
 interface SongCardProps {
 	song: ISong;

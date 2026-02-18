@@ -82,6 +82,7 @@ const PurchaseButton: React.FC<PurchaseButtonProps> = ({
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["user", "purchases"] });
+			queryClient.refetchQueries({ queryKey: ["user", "purchases"], type: "active" });
 		},
 	});
 

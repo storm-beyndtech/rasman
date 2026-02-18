@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, Suspense } from "react";
+import { useMemo, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Play, Music, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -26,6 +26,7 @@ const verifyPayment = async (reference: string) => {
 function PaymentSuccessContent() {
 	const searchParams = useSearchParams();
 	const reference = searchParams.get("reference");
+	const queryClient = useQueryClient();
 
 	const {
 		data,
@@ -39,6 +40,12 @@ function PaymentSuccessContent() {
 		enabled: Boolean(reference),
 		retry: 1,
 	});
+
+	useEffect(() => {
+		if (!data) return;
+		queryClient.invalidateQueries({ queryKey: ["user", "purchases"] });
+		queryClient.refetchQueries({ queryKey: ["user", "purchases"], type: "active" });
+	}, [data, queryClient]);
 
 	const status: "verifying" | "success" | "failed" = useMemo(() => {
 		if (!reference) return "failed";

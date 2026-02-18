@@ -100,7 +100,7 @@ const SongCard: React.FC<SongCardProps> = ({ song, index, purchaseId, viewMode =
 						/>
 
 						{/* Overlay with action button */}
-						<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+						<div className="absolute inset-0 bg-black/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
 							{!isSignedIn ? (
 								<SignInButton mode="modal">
 									<motion.button
@@ -146,7 +146,7 @@ const SongCard: React.FC<SongCardProps> = ({ song, index, purchaseId, viewMode =
 						{isSignedIn && purchased && purchaseId && (
 							<motion.button
 								onClick={handleDownload}
-								className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors duration-300 opacity-0 group-hover:opacity-100"
+								className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100"
 								whileHover={{ scale: 1.1 }}
 								whileTap={{ scale: 0.95 }}
 								title="Download"
@@ -253,7 +253,7 @@ const SongCard: React.FC<SongCardProps> = ({ song, index, purchaseId, viewMode =
 				{isSignedIn && purchased && purchaseId && (
 					<motion.button
 						onClick={handleDownload}
-						className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-colors duration-300 opacity-0 group-hover:opacity-100"
+						className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-colors duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100"
 						whileHover={{ scale: 1.1 }}
 						whileTap={{ scale: 0.95 }}
 						title="Download"
